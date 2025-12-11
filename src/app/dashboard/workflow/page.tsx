@@ -403,6 +403,10 @@ ${characterDescriptions.join("\n\n")}
     const styleGuide = generateStylePrompt(styleOptions, customGenre, customMood);
     const characterGuide = generateCharacterPrompt();
 
+    console.log("=== 스크립트 생성 시작 ===");
+    console.log("선택된 캐릭터 수:", selectedCharacters.length);
+    console.log("캐릭터 가이드:", characterGuide);
+
     try {
       setLoadingStep("스크립트 생성 중...");
 
