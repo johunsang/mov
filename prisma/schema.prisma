@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  password      String
+  name          String?
+  replicateKey  String?      @db.Text
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  prompts       Prompt[]
+  generations   Generation[]
+  characters    Character[]
+  stylePresets  StylePreset[]
+}
+
+model StylePreset {
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  icon                String?  @default("🎬")
+
+  // 스타일 옵션
+  genre               String
+  customGenre         String?
+  mood                String
+  customMood          String?
+  visualStyle         String
+  lightingStyle       String
+  cameraAngle         String
+  shotSize            String
+  cameraMovement      String
+  pacing              String
+  transitionStyle     String
+  colorGrade          String
+  timeSetting         String
+  weatherSetting      String
+  format              String
+  duration            String
+
+  // 선택된 캐릭터 ID 배열
+  characterIds        Json?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Character {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?  @db.Text
+  role            String?  // "주인공" | "조연" | "엑스트라" | "악당" | "기타"
+  gender          String?  // "남성" | "여성" | "기타"
+  age             String?  // "아기" | "어린이" | "청소년" | "청년" | "중년" | "노년"
+  appearance      String?  @db.Text  // 외모 상세 설명
+  clothing        String?  @db.Text  // 의상 스타일
+  personality     String?  @db.Text  // 성격 특성
+  referenceImages Json?    // 참조 이미지 URL 배열
+  generatedImages Json?    // AI 생성 이미지 URL 배열
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Prompt {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   // "video" | "image" | "workflow"
+  prompt          String   @db.Text
+  videoPrompt     String?  @db.Text
+  model           String
+  imageModel      String?
+  videoModel      String?
+  referenceImages Json?
+  aspectRatio     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model Generation {
+  id          String   @id @default(cuid())
+  type        String   // "image" | "video" | "image-to-video" | "workflow"
+  prompt      String   @db.Text
+  model       String
+  resultUrl   String?  @db.Text
+  status      String   @default("pending") // "pending" | "processing" | "completed" | "failed"
+  error       String?  @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+}
