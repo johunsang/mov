@@ -148,8 +148,13 @@ export default function LoginPage() {
         <div className="mt-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
           <h3 className="text-sm font-medium text-zinc-300 mb-2">토큰 발급 방법</h3>
           <ol className="text-xs text-zinc-500 space-y-1 list-decimal list-inside">
-            <li>화수분 가제트를 실행합니다</li>
-            <li>설정 &gt; 토큰 관리에서 토큰을 발급받습니다</li>
+            <li>
+              <a href="https://hwasubun.ai" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300">
+                화수분 홈페이지 (hwasubun.ai)
+              </a>
+              에 접속합니다
+            </li>
+            <li>로그인 후 마이페이지에서 토큰을 발급받습니다</li>
             <li>발급받은 토큰을 위 입력란에 붙여넣기 합니다</li>
           </ol>
         </div>
