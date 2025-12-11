@@ -57,9 +57,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <p className="text-xs text-zinc-500 mt-1">
-              화수분 가제트에서 발급받은 토큰을 입력하세요
-            </p>
           </div>
 
           {error && (
