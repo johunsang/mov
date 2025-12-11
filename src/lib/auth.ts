@@ -2,15 +2,17 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "./prisma";
 
-const HWASUBUN_API_URL = "https://hwasubun.ai/api/token2/user-tokens";
+const HWASUBUN_API_URL = "https://hwasubun.ai/api/token2/user-tokens-web";
 
-// 화수분 토큰 검증 함수
-async function verifyHwasubunToken(token: string, pcSerial: string): Promise<{ success: boolean; data?: { userId?: string; email?: string; name?: string }; message?: string }> {
+// 화수분 토큰 검증 함수 (웹용 - PC 시리얼 검증 없음)
+async function verifyHwasubunToken(token: string): Promise<{ success: boolean; data?: { userId?: string; email?: string; name?: string }; message?: string }> {
   try {
     const response = await fetch(HWASUBUN_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, pcSerial }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
     });
 
     if (response.ok) {
@@ -41,15 +43,14 @@ export const authOptions: NextAuthOptions = {
       name: "hwasubun-token",
       credentials: {
         token: { label: "Token", type: "text" },
-        pcSerial: { label: "PC Serial", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.token || !credentials?.pcSerial) {
-          throw new Error("토큰과 PC 시리얼을 입력해주세요");
+        if (!credentials?.token) {
+          throw new Error("토큰을 입력해주세요");
         }
 
-        // 화수분 서버에서 토큰 검증
-        const result = await verifyHwasubunToken(credentials.token, credentials.pcSerial);
+        // 화수분 서버에서 토큰 검증 (웹용 - PC 시리얼 불필요)
+        const result = await verifyHwasubunToken(credentials.token);
 
         if (!result.success) {
           throw new Error(result.message || "토큰 인증 실패");

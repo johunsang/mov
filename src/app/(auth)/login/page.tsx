@@ -1,53 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Key, Monitor, Loader2, Film, Shield } from "lucide-react";
-
-// PC 시리얼 생성 함수 (브라우저 핑거프린트 기반)
-function generatePcSerial(): string {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    ctx.textBaseline = "top";
-    ctx.font = "14px Arial";
-    ctx.fillText("화수분", 2, 2);
-  }
-  const canvasData = canvas.toDataURL();
-
-  const fingerprint = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width + "x" + screen.height,
-    screen.colorDepth,
-    new Date().getTimezoneOffset(),
-    canvasData.substring(0, 50),
-  ].join("|");
-
-  // 간단한 해시 생성
-  let hash = 0;
-  for (let i = 0; i < fingerprint.length; i++) {
-    const char = fingerprint.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-
-  return Math.abs(hash).toString(16).toUpperCase().padStart(16, "0");
-}
+import { Key, Loader2, Film, Shield } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
-  const [pcSerial, setPcSerial] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // PC 시리얼 자동 생성
-    const serial = generatePcSerial();
-    setPcSerial(serial);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +18,6 @@ export default function LoginPage() {
 
     const result = await signIn("credentials", {
       token,
-      pcSerial,
       redirect: false,
     });
 
@@ -98,25 +59,6 @@ export default function LoginPage() {
             </div>
             <p className="text-xs text-zinc-500 mt-1">
               화수분 가제트에서 발급받은 토큰을 입력하세요
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm text-zinc-400 mb-2">
-              <Monitor className="w-4 h-4 inline mr-1" />
-              PC 시리얼
-            </label>
-            <div className="relative">
-              <Monitor className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-              <input
-                type="text"
-                value={pcSerial}
-                readOnly
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-3 text-zinc-400 font-mono cursor-not-allowed"
-              />
-            </div>
-            <p className="text-xs text-zinc-500 mt-1">
-              자동으로 생성된 PC 시리얼입니다
             </p>
           </div>
 
