@@ -25,6 +25,8 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
+      // 토큰을 localStorage에 저장
+      localStorage.setItem("hwasubun_token", token);
       router.push("/dashboard");
     }
   };
