@@ -207,28 +207,13 @@ export default function WorkflowPage() {
       });
   }, []);
 
-  // 영상 길이에 따라 장면 수 자동 계산
+  // 영상 길이에 따라 장면 수 자동 계산 (Veo 3.1 기준: 최대 8초/장면)
   useEffect(() => {
     if (!autoSceneCount) return;
 
     const durationSeconds = parseInt(styleOptions.duration);
-    let calculatedScenes = 1;
-
-    if (durationSeconds <= 15) {
-      calculatedScenes = 1;
-    } else if (durationSeconds <= 30) {
-      calculatedScenes = 2;
-    } else if (durationSeconds <= 60) {
-      calculatedScenes = 3;
-    } else if (durationSeconds <= 180) {
-      calculatedScenes = 5;
-    } else if (durationSeconds <= 300) {
-      calculatedScenes = 8;
-    } else if (durationSeconds <= 600) {
-      calculatedScenes = 10;
-    } else {
-      calculatedScenes = 12;
-    }
+    // Veo 3.1은 최대 8초 영상 생성 가능, 따라서 총 길이 / 8 = 필요한 장면 수
+    const calculatedScenes = Math.max(1, Math.ceil(durationSeconds / 8));
 
     setSceneCount(calculatedScenes);
   }, [styleOptions.duration, autoSceneCount]);
@@ -1389,7 +1374,7 @@ ${imagePrompts.map((scene, idx) => `
                   <Plus className="w-5 h-5" />
                 </button>
                 <span className="text-zinc-500 text-sm">
-                  (총 {sceneCount * 3}장의 이미지, 장면당 약 {Math.round(parseInt(styleOptions.duration) / sceneCount)}초)
+                  (총 {sceneCount * 2}장의 이미지, 장면당 약 {Math.round(parseInt(styleOptions.duration) / sceneCount)}초)
                 </span>
               </div>
               {autoSceneCount && (
@@ -1753,7 +1738,7 @@ ${imagePrompts.map((scene, idx) => `
                 ) : (
                   <>
                     <ImageIcon className="w-5 h-5" />
-                    이미지 생성 ({sceneCount * 3}장)
+                    이미지 생성 ({sceneCount * 2}장)
                   </>
                 )}
               </button>
