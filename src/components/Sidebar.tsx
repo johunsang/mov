@@ -10,12 +10,10 @@ import {
   History,
   Settings,
   LogOut,
-  Home,
   Users,
 } from "lucide-react";
 
 const menuItems = [
-  { href: "/dashboard", icon: Home, label: "홈" },
   { href: "/dashboard/workflow", icon: Wand2, label: "워크플로우" },
   { href: "/dashboard/characters", icon: Users, label: "캐릭터 관리" },
   { href: "/dashboard/prompts", icon: FileText, label: "프롬프트" },

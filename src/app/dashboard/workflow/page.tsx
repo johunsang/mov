@@ -25,12 +25,11 @@ import {
   Trash2,
   Bookmark,
 } from "lucide-react";
-import { IMAGE_MODELS, TEXT_MODELS, VIDEO_MODELS } from "@/lib/models";
+import { IMAGE_MODELS, TEXT_MODELS } from "@/lib/models";
 import {
   VIDEO_GENRES,
   VIDEO_MOODS,
   VISUAL_STYLES,
-  LIGHTING_STYLES,
   CAMERA_ANGLES,
   SHOT_SIZES,
   CAMERA_MOVEMENTS,
@@ -38,7 +37,6 @@ import {
   TRANSITION_STYLES,
   COLOR_GRADES,
   TIME_SETTINGS,
-  WEATHER_SETTINGS,
   VIDEO_FORMATS,
   VIDEO_DURATIONS,
   STYLE_PRESETS,
@@ -120,7 +118,7 @@ export default function WorkflowPage() {
   const [topic, setTopic] = useState("");
   const [textModel, setTextModel] = useState("gemini");
   const [imageModel, setImageModel] = useState("nano-banana-pro");
-  const [videoModel, setVideoModel] = useState("veo-3.1");
+  const videoModel = "veo-3.1"; // 고정
 
   const [sceneCount, setSceneCount] = useState(3);
   const [autoSceneCount, setAutoSceneCount] = useState(true);
@@ -146,7 +144,7 @@ export default function WorkflowPage() {
     genre: "cinematic",
     mood: "epic",
     visualStyle: "realistic",
-    lightingStyle: "golden-hour",
+    lightingStyle: "natural",
     cameraAngle: "eye-level",
     shotSize: "medium",
     cameraMovement: "dolly-in",
@@ -1154,19 +1152,6 @@ ${imagePrompts.map((scene, idx) => `
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm text-zinc-400 mb-2">조명 스타일</label>
-                          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-                            {LIGHTING_STYLES.map((lighting) => (
-                              <StyleButton
-                                key={lighting.id}
-                                item={lighting}
-                                selected={styleOptions.lightingStyle === lighting.id}
-                                onClick={() => setStyleOptions({ ...styleOptions, lightingStyle: lighting.id })}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <div>
                           <label className="block text-sm text-zinc-400 mb-2">색보정 / 컬러그레이딩</label>
                           <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                             {COLOR_GRADES.map((color) => (
@@ -1194,19 +1179,6 @@ ${imagePrompts.map((scene, idx) => `
                                 item={time}
                                 selected={styleOptions.timeSetting === time.id}
                                 onClick={() => setStyleOptions({ ...styleOptions, timeSetting: time.id })}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm text-zinc-400 mb-2">날씨 / 환경</label>
-                          <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                            {WEATHER_SETTINGS.map((weather) => (
-                              <StyleButton
-                                key={weather.id}
-                                item={weather}
-                                selected={styleOptions.weatherSetting === weather.id}
-                                onClick={() => setStyleOptions({ ...styleOptions, weatherSetting: weather.id })}
                               />
                             ))}
                           </div>
@@ -1272,7 +1244,7 @@ ${imagePrompts.map((scene, idx) => `
                   {VISUAL_STYLES.find((v) => v.id === styleOptions.visualStyle)?.icon} {VISUAL_STYLES.find((v) => v.id === styleOptions.visualStyle)?.name}
                 </span>
                 <span className="px-2 py-1 bg-yellow-600/20 text-yellow-300 rounded-full text-xs">
-                  {LIGHTING_STYLES.find((l) => l.id === styleOptions.lightingStyle)?.icon} {LIGHTING_STYLES.find((l) => l.id === styleOptions.lightingStyle)?.name}
+                  {TIME_SETTINGS.find((t) => t.id === styleOptions.timeSetting)?.icon} {TIME_SETTINGS.find((t) => t.id === styleOptions.timeSetting)?.name}
                 </span>
                 <span className="px-2 py-1 bg-pink-600/20 text-pink-300 rounded-full text-xs">
                   {COLOR_GRADES.find((c) => c.id === styleOptions.colorGrade)?.icon} {COLOR_GRADES.find((c) => c.id === styleOptions.colorGrade)?.name}

@@ -108,8 +108,6 @@ export const VISUAL_STYLES = [
 // ==================== 조명 스타일 (신규) ====================
 export const LIGHTING_STYLES = [
   { id: "natural", name: "자연광", description: "햇빛, 창문 빛 등 자연스러운 조명", icon: "☀️" },
-  { id: "golden-hour", name: "골든아워", description: "일출/일몰의 황금빛 조명", icon: "🌅" },
-  { id: "blue-hour", name: "블루아워", description: "해 지기 직전/후의 푸른 빛", icon: "🌆" },
   { id: "studio", name: "스튜디오", description: "전문 조명 세팅, 깔끔한", icon: "💡" },
   { id: "dramatic", name: "드라마틱", description: "강한 명암, 극적인 조명", icon: "🎭" },
   { id: "soft", name: "소프트", description: "부드럽고 은은한 조명", icon: "🕯️" },
@@ -118,7 +116,6 @@ export const LIGHTING_STYLES = [
   { id: "rim-light", name: "림라이트", description: "피사체 테두리를 빛으로 강조", icon: "✨" },
   { id: "neon-glow", name: "네온글로우", description: "네온사인 느낌의 컬러풀한 빛", icon: "💜" },
   { id: "candlelight", name: "촛불", description: "따뜻한 촛불 조명, 아늑한", icon: "🕯️" },
-  { id: "moonlight", name: "달빛", description: "은은한 푸른 달빛", icon: "🌙" },
 ];
 
 // ==================== 카메라 앵글 (신규) ====================
@@ -260,7 +257,7 @@ export interface VideoStyleOptions {
   genre: string;
   mood: string;
   visualStyle: string;
-  lightingStyle: string;
+  lightingStyle?: string; // deprecated, kept for compatibility
   cameraAngle: string;
   shotSize: string;
   cameraMovement: string;
@@ -268,7 +265,7 @@ export interface VideoStyleOptions {
   transitionStyle: string;
   colorGrade: string;
   timeSetting: string;
-  weatherSetting: string;
+  weatherSetting?: string; // deprecated, kept for compatibility
   format: string;
   duration: string;
 }
@@ -278,7 +275,6 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
   const genre = VIDEO_GENRES.find((g) => g.id === options.genre);
   const mood = VIDEO_MOODS.find((m) => m.id === options.mood);
   const visual = VISUAL_STYLES.find((v) => v.id === options.visualStyle);
-  const lighting = LIGHTING_STYLES.find((l) => l.id === options.lightingStyle);
   const angle = CAMERA_ANGLES.find((a) => a.id === options.cameraAngle);
   const shot = SHOT_SIZES.find((s) => s.id === options.shotSize);
   const camera = CAMERA_MOVEMENTS.find((c) => c.id === options.cameraMovement);
@@ -286,7 +282,6 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
   const transition = TRANSITION_STYLES.find((t) => t.id === options.transitionStyle);
   const color = COLOR_GRADES.find((c) => c.id === options.colorGrade);
   const time = TIME_SETTINGS.find((t) => t.id === options.timeSetting);
-  const weather = WEATHER_SETTINGS.find((w) => w.id === options.weatherSetting);
   const format = VIDEO_FORMATS.find((f) => f.id === options.format);
   const duration = VIDEO_DURATIONS.find((d) => d.id === options.duration);
 
@@ -310,8 +305,8 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
 
 ■ 비주얼 스타일
 - 시각 스타일: ${visual?.name} (${visual?.description})
-- 조명: ${lighting?.name} (${lighting?.description})
 - 색보정: ${color?.name} (${color?.description})
+- 시간대: ${time?.name} (${time?.description})
 
 ■ 촬영 기법
 - 카메라 앵글: ${angle?.name} (${angle?.description})
@@ -322,14 +317,10 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
 - 속도감: ${pacing?.name} (${pacing?.description})
 - 전환 효과: ${transition?.name} (${transition?.description})
 
-■ 환경 설정
-- 시간대: ${time?.name} (${time?.description})
-- 날씨: ${weather?.name} (${weather?.description})
-
 [지시사항]
 1. 위 스타일 가이드를 모든 프레임에 일관되게 적용하세요.
 2. ${format?.aspectRatio} 화면비에 맞는 구도로 촬영을 구성하세요.
-3. ${lighting?.name} 조명과 ${color?.name} 색보정을 활용하세요.
+3. ${time?.name} 시간대의 자연스러운 조명과 ${color?.name} 색보정을 활용하세요.
 4. ${camera?.name} 카메라 움직임으로 ${mood?.name} 분위기를 연출하세요.
 5. 장면 전환은 ${transition?.name} 스타일을 사용하세요.
 `.trim();
@@ -390,7 +381,7 @@ export const STYLE_PRESETS = [
       genre: "romance",
       mood: "romantic",
       visualStyle: "soft-focus",
-      lightingStyle: "golden-hour",
+      lightingStyle: "soft",
       cameraAngle: "eye-level",
       shotSize: "medium",
       cameraMovement: "dolly-in",
