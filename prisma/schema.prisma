@@ -19,6 +19,8 @@ model User {
   generations   Generation[]
   characters    Character[]
   stylePresets  StylePreset[]
+  styleOptions  StyleOption[]
+  customStyleOptions  CustomStyleOption[] // deprecated
 }
 
 model StylePreset {
@@ -33,7 +35,7 @@ model StylePreset {
   mood                String
   customMood          String?
   visualStyle         String
-  lightingStyle       String
+  lightingStyle       String?  @default("natural")
   cameraAngle         String
   shotSize            String
   cameraMovement      String
@@ -41,7 +43,7 @@ model StylePreset {
   transitionStyle     String
   colorGrade          String
   timeSetting         String
-  weatherSetting      String
+  weatherSetting      String?  @default("clear")
   format              String
   duration            String
 
@@ -117,4 +119,44 @@ model Generation {
   @@index([status])
   @@index([createdAt])
   @@index([userId])
+}
+
+// 스타일 옵션 (시스템 기본값 + 사용자 커스텀)
+model StyleOption {
+  id          String   @id @default(cuid())
+  type        String   // "genre" | "mood" | "visualStyle" | "lightingStyle" | "cameraAngle" | "shotSize" | "cameraMovement" | "pacing" | "transitionStyle" | "colorGrade" | "timeSetting" | "weatherSetting" | "format" | "duration"
+  optionId    String   // 옵션 고유 ID (예: "cinematic", "custom-my-genre")
+  name        String   // 표시 이름
+  description String?  // 설명
+  icon        String?  @default("🎬") // 이모지 아이콘
+  isSystem    Boolean  @default(false) // 시스템 기본 옵션 여부
+  sortOrder   Int      @default(0) // 정렬 순서
+  metadata    Json?    // 추가 데이터 (format의 aspectRatio, duration의 seconds 등)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String?  // null이면 시스템 옵션, 있으면 사용자 커스텀
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, optionId, userId]) // 같은 타입 내에서 옵션ID 중복 방지
+  @@index([type])
+  @@index([userId])
+  @@index([isSystem])
+}
+
+// 기존 CustomStyleOption은 StyleOption으로 마이그레이션 후 삭제 예정
+model CustomStyleOption {
+  id          String   @id @default(cuid())
+  type        String
+  optionId    String
+  name        String
+  description String?
+  icon        String?  @default("🎬")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, optionId])
+  @@index([userId])
+  @@index([type])
 }

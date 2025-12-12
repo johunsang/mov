@@ -6,8 +6,6 @@ import { signOut, useSession } from "next-auth/react";
 import {
   Film,
   Wand2,
-  FileText,
-  History,
   Settings,
   LogOut,
   Users,
@@ -16,8 +14,6 @@ import {
 const menuItems = [
   { href: "/dashboard/workflow", icon: Wand2, label: "워크플로우" },
   { href: "/dashboard/characters", icon: Users, label: "캐릭터 관리" },
-  { href: "/dashboard/prompts", icon: FileText, label: "프롬프트" },
-  { href: "/dashboard/history", icon: History, label: "생성 기록" },
   { href: "/dashboard/settings", icon: Settings, label: "설정" },
 ];
 

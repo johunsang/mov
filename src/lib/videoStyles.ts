@@ -103,6 +103,14 @@ export const VISUAL_STYLES = [
   { id: "high-contrast", name: "하이콘트라스트", description: "강한 명암 대비, 극적인", icon: "◐" },
   { id: "soft-focus", name: "소프트포커스", description: "부드럽게 흐린, 로맨틱", icon: "🌸" },
   { id: "gritty", name: "그리티", description: "거칠고 날것의, 리얼리즘", icon: "🏚️" },
+  // 카툰/애니메이션 스타일
+  { id: "cartoon", name: "카툰", description: "만화 스타일, 굵은 외곽선, 단순한 색상", icon: "🎨" },
+  { id: "anime", name: "애니메이션", description: "일본 애니메이션 스타일, 큰 눈, 생동감", icon: "✨" },
+  { id: "comic", name: "코믹북", description: "미국 만화 스타일, 강렬한 색상, 역동적", icon: "💥" },
+  { id: "pixar", name: "픽사/디즈니", description: "3D 애니메이션, 귀엽고 따뜻한", icon: "🧸" },
+  { id: "watercolor", name: "수채화", description: "수채화 느낌, 부드럽고 예술적인", icon: "🖼️" },
+  { id: "flat-design", name: "플랫 디자인", description: "심플하고 현대적인 일러스트", icon: "📐" },
+  { id: "chibi", name: "치비/SD", description: "귀엽고 과장된 비율, 아기자기", icon: "🎀" },
 ];
 
 // ==================== 조명 스타일 (신규) ====================
@@ -186,20 +194,116 @@ export const TRANSITION_STYLES = [
   { id: "morph", name: "모프", description: "형태가 변형되며 전환", icon: "🦋" },
 ];
 
-// ==================== 색보정/컬러그레이딩 (신규) ====================
+// ==================== 색보정/컬러그레이딩 (확장) ====================
 export const COLOR_GRADES = [
+  // 기본 색감
   { id: "natural", name: "내추럴", description: "자연스러운 색감 그대로", icon: "🌿" },
+  { id: "neutral", name: "뉴트럴", description: "중립적인 기본 색감", icon: "⚪" },
+
+  // 온도 기반
   { id: "warm", name: "따뜻한", description: "오렌지/황금빛 톤, 아늑한", icon: "🔥" },
+  { id: "warm-golden", name: "골든 워밍", description: "황금빛 풍부한 따뜻함", icon: "🌟" },
+  { id: "warm-amber", name: "앰버톤", description: "호박색 따뜻한 색감", icon: "🍯" },
   { id: "cool", name: "차가운", description: "블루/청록 톤, 시원한", icon: "❄️" },
+  { id: "cool-steel", name: "스틸블루", description: "차가운 금속성 푸른빛", icon: "🔵" },
+  { id: "cool-arctic", name: "아틱", description: "극도로 차가운 북극 느낌", icon: "🧊" },
+
+  // 할리우드/시네마틱
   { id: "teal-orange", name: "틸앤오렌지", description: "할리우드 블록버스터 스타일", icon: "🎬" },
+  { id: "orange-teal-heavy", name: "강한 틸오렌지", description: "더욱 극적인 블록버스터", icon: "🎥" },
+  { id: "blockbuster", name: "블록버스터", description: "마블/DC 슈퍼히어로 영화풍", icon: "🦸" },
+  { id: "michael-bay", name: "마이클베이", description: "고대비 액션 영화 스타일", icon: "💥" },
+  { id: "nolan", name: "놀란 스타일", description: "크리스토퍼 놀란 영화 색감", icon: "🎭" },
+  { id: "fincher", name: "핀처 스타일", description: "데이비드 핀처 어두운 색감", icon: "🔍" },
+  { id: "wes-anderson", name: "웨스앤더슨", description: "파스텔 대칭적 색감", icon: "🎨" },
+  { id: "tarantino", name: "타란티노", description: "70년대 레트로 채도", icon: "🎯" },
+  { id: "blade-runner", name: "블레이드러너", description: "네온 사이버펑크 느와르", icon: "🌃" },
+  { id: "matrix", name: "매트릭스", description: "녹색 틴트 사이버 세계", icon: "💚" },
+  { id: "sin-city", name: "씬시티", description: "흑백+부분컬러 느와르", icon: "🖤" },
+
+  // 채도 조절
   { id: "desaturated", name: "저채도", description: "색이 빠진 듯한 무드", icon: "🩶" },
+  { id: "very-desaturated", name: "극저채도", description: "거의 흑백에 가까운", icon: "⬜" },
   { id: "high-saturation", name: "고채도", description: "색이 진하고 화려한", icon: "🌈" },
+  { id: "hyper-saturated", name: "초고채도", description: "극도로 화려한 팝아트풍", icon: "🎪" },
+  { id: "selective-color", name: "선택적컬러", description: "특정 색만 강조", icon: "🎯" },
+
+  // 빈티지/레트로
   { id: "sepia", name: "세피아", description: "갈색 톤의 빈티지 느낌", icon: "📜" },
+  { id: "vintage-film", name: "빈티지필름", description: "80년대 필름 색감", icon: "📷" },
+  { id: "kodak-5219", name: "코닥5219", description: "코닥 비전3 영화필름", icon: "🎞️" },
+  { id: "kodak-portra", name: "코닥포트라", description: "포트라400 인물 색감", icon: "👤" },
+  { id: "fuji-velvia", name: "후지벨비아", description: "선명한 풍경 슬라이드", icon: "🏔️" },
+  { id: "fuji-provia", name: "후지프로비아", description: "자연스러운 슬라이드", icon: "🌲" },
+  { id: "agfa-vista", name: "아그파비스타", description: "따뜻한 빈티지 색감", icon: "🌅" },
+  { id: "polaroid", name: "폴라로이드", description: "인스턴트 사진 느낌", icon: "🖼️" },
+  { id: "vhs", name: "VHS", description: "90년대 비디오테이프", icon: "📼" },
+  { id: "super-8", name: "슈퍼8mm", description: "홈무비 필름 느낌", icon: "🎬" },
+  { id: "faded-film", name: "바랜필름", description: "오래된 빛바랜 사진", icon: "🌫️" },
+  { id: "lomography", name: "로모그래피", description: "비네팅+컬러시프트", icon: "📸" },
+
+  // 흑백/모노크롬
+  { id: "black-white", name: "흑백", description: "클래식 모노크롬", icon: "⬛" },
+  { id: "bw-high-contrast", name: "고대비흑백", description: "강한 명암의 흑백", icon: "◐" },
+  { id: "bw-film-noir", name: "필름느와르", description: "1940년대 느와르 흑백", icon: "🎩" },
+  { id: "bw-soft", name: "소프트흑백", description: "부드러운 회색톤", icon: "🌫️" },
+  { id: "silver-gelatin", name: "실버젤라틴", description: "은염 인화지 느낌", icon: "🥈" },
+  { id: "infrared", name: "적외선", description: "IR 흑백 사진 효과", icon: "🔴" },
+
+  // 특수 효과
   { id: "cross-process", name: "크로스프로세스", description: "독특한 색 왜곡 효과", icon: "🎨" },
   { id: "bleach-bypass", name: "블리치바이패스", description: "은잔류 효과, 저채도 하이콘", icon: "🖤" },
   { id: "day-for-night", name: "데이포나잇", description: "낮에 촬영한 밤 장면 느낌", icon: "🌙" },
+  { id: "duotone", name: "듀오톤", description: "2가지 색상만 사용", icon: "🔷" },
+  { id: "split-tone", name: "스플릿톤", description: "하이라이트/섀도우 분리", icon: "🌗" },
+  { id: "color-shift", name: "컬러시프트", description: "색상 전체 이동", icon: "🔀" },
+  { id: "technicolor", name: "테크니컬러", description: "1950년대 영화 색감", icon: "🎭" },
+
+  // 분위기별
+  { id: "moody-dark", name: "무디다크", description: "어둡고 분위기 있는", icon: "🌑" },
+  { id: "soft-pastel", name: "소프트파스텔", description: "부드러운 파스텔톤", icon: "🍬" },
+  { id: "dreamy-haze", name: "드리미헤이즈", description: "몽환적 흐림 효과", icon: "💭" },
+  { id: "golden-hour", name: "골든아워", description: "일몰 직전 황금빛", icon: "🌇" },
+  { id: "blue-hour", name: "블루아워", description: "일몰 직후 푸른빛", icon: "🌆" },
+  { id: "magic-hour", name: "매직아워", description: "해질녘 마법같은 빛", icon: "✨" },
+  { id: "neon-glow", name: "네온글로우", description: "네온사인 컬러풀", icon: "💜" },
+  { id: "cyberpunk", name: "사이버펑크", description: "핑크/청록 네온", icon: "🤖" },
+  { id: "vaporwave", name: "베이퍼웨이브", description: "80년대 디지털 복고", icon: "🌴" },
+  { id: "synthwave", name: "신스웨이브", description: "레트로 퓨처리즘", icon: "🕹️" },
+
+  // 장르별
+  { id: "horror-green", name: "호러그린", description: "공포영화 녹색 틴트", icon: "👻" },
+  { id: "thriller-cold", name: "스릴러콜드", description: "차가운 긴장감", icon: "😰" },
+  { id: "romance-soft", name: "로맨스소프트", description: "부드럽고 따뜻한 로맨스", icon: "💕" },
+  { id: "comedy-bright", name: "코미디브라이트", description: "밝고 생생한 코미디", icon: "😂" },
+  { id: "documentary-real", name: "다큐리얼", description: "사실적인 다큐 색감", icon: "📹" },
+  { id: "music-video", name: "뮤직비디오", description: "화려한 MV 색감", icon: "🎵" },
+  { id: "commercial-clean", name: "광고클린", description: "깨끗한 광고 색감", icon: "📺" },
+  { id: "fashion-editorial", name: "패션에디토리얼", description: "패션지 화보풍", icon: "👗" },
+
+  // 자연/풍경
+  { id: "landscape-vivid", name: "풍경비비드", description: "선명한 자연 풍경", icon: "🏞️" },
+  { id: "sunset-warm", name: "선셋워밍", description: "일몰 따뜻한 색감", icon: "🌅" },
+  { id: "forest-green", name: "포레스트그린", description: "숲속 초록 강조", icon: "🌲" },
+  { id: "ocean-blue", name: "오션블루", description: "바다 푸른 색감", icon: "🌊" },
+  { id: "autumn-orange", name: "어텀오렌지", description: "가을 단풍 색감", icon: "🍂" },
+  { id: "winter-cold", name: "윈터콜드", description: "겨울 차가운 색감", icon: "⛄" },
+  { id: "spring-fresh", name: "스프링프레시", description: "봄날 생기 있는", icon: "🌸" },
+  { id: "summer-vibrant", name: "서머바이브런트", description: "여름 화사한 색감", icon: "☀️" },
+
+  // 인물/스킨톤
+  { id: "skin-warm", name: "스킨워밍", description: "따뜻한 피부톤 강조", icon: "👩" },
+  { id: "skin-natural", name: "스킨내추럴", description: "자연스러운 피부색", icon: "👨" },
+  { id: "skin-porcelain", name: "포슬린스킨", description: "밝고 부드러운 피부", icon: "✨" },
+  { id: "beauty-glow", name: "뷰티글로우", description: "광채나는 화장품 광고", icon: "💄" },
+
+  // LUT 스타일
   { id: "lut-cinematic", name: "시네마틱LUT", description: "영화 필름 같은 색감", icon: "🎞️" },
   { id: "lut-vintage", name: "빈티지LUT", description: "오래된 필름 색감", icon: "📷" },
+  { id: "lut-arri", name: "ARRI-LUT", description: "알렉사 카메라 색감", icon: "🎥" },
+  { id: "lut-red", name: "RED-LUT", description: "레드 카메라 색감", icon: "🔴" },
+  { id: "lut-sony", name: "소니S-Log", description: "소니 시네마 색감", icon: "🎦" },
+  { id: "lut-bmpcc", name: "BMPCC", description: "블랙매직 색감", icon: "🎬" },
 ];
 
 // ==================== 시간대/배경 (신규) ====================
@@ -502,6 +606,116 @@ export const STYLE_PRESETS = [
       weatherSetting: "misty",
       format: "cinema-standard",
       duration: "300",
+    }
+  },
+  {
+    id: "cartoon-fun",
+    name: "재밌는 카툰",
+    description: "밝고 재미있는 만화 스타일",
+    icon: "🎨",
+    options: {
+      genre: "animation",
+      mood: "playful",
+      visualStyle: "cartoon",
+      lightingStyle: "natural",
+      cameraAngle: "eye-level",
+      shotSize: "medium",
+      cameraMovement: "tracking",
+      pacing: "fast",
+      transitionStyle: "wipe",
+      colorGrade: "high-saturation",
+      timeSetting: "morning",
+      weatherSetting: "clear",
+      format: "shorts",
+      duration: "60",
+    }
+  },
+  {
+    id: "anime-style",
+    name: "애니메이션",
+    description: "일본 애니메이션 스타일",
+    icon: "✨",
+    options: {
+      genre: "animation",
+      mood: "energetic",
+      visualStyle: "anime",
+      lightingStyle: "dramatic",
+      cameraAngle: "low-angle",
+      shotSize: "medium-close",
+      cameraMovement: "dolly-in",
+      pacing: "varied",
+      transitionStyle: "cut",
+      colorGrade: "high-saturation",
+      timeSetting: "golden-hour",
+      weatherSetting: "clear",
+      format: "standard",
+      duration: "180",
+    }
+  },
+  {
+    id: "pixar-cute",
+    name: "귀여운 3D",
+    description: "픽사/디즈니 스타일 3D 애니메이션",
+    icon: "🧸",
+    options: {
+      genre: "kids",
+      mood: "joyful",
+      visualStyle: "pixar",
+      lightingStyle: "soft",
+      cameraAngle: "eye-level",
+      shotSize: "medium",
+      cameraMovement: "arc",
+      pacing: "moderate",
+      transitionStyle: "dissolve",
+      colorGrade: "warm",
+      timeSetting: "afternoon",
+      weatherSetting: "clear",
+      format: "standard",
+      duration: "180",
+    }
+  },
+  {
+    id: "comic-action",
+    name: "코믹북 액션",
+    description: "미국 만화 스타일 역동적인 액션",
+    icon: "💥",
+    options: {
+      genre: "action",
+      mood: "intense",
+      visualStyle: "comic",
+      lightingStyle: "dramatic",
+      cameraAngle: "dutch-angle",
+      shotSize: "full",
+      cameraMovement: "tracking",
+      pacing: "very-fast",
+      transitionStyle: "whip-pan",
+      colorGrade: "high-saturation",
+      timeSetting: "noon",
+      weatherSetting: "clear",
+      format: "shorts",
+      duration: "60",
+    }
+  },
+  {
+    id: "watercolor-art",
+    name: "수채화 감성",
+    description: "부드럽고 예술적인 수채화 느낌",
+    icon: "🖼️",
+    options: {
+      genre: "artistic",
+      mood: "serene",
+      visualStyle: "watercolor",
+      lightingStyle: "soft",
+      cameraAngle: "eye-level",
+      shotSize: "wide",
+      cameraMovement: "static",
+      pacing: "very-slow",
+      transitionStyle: "fade",
+      colorGrade: "natural",
+      timeSetting: "golden-hour",
+      weatherSetting: "misty",
+      format: "square",
+      duration: "60",
     }
   },
 ];
