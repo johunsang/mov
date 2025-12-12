@@ -1323,17 +1323,9 @@ ${imagePrompts.map((scene, idx) => `
               </div>
               <div>
                 <label className="block text-sm text-zinc-400 mb-2">영상 생성 모델</label>
-                <select
-                  value={videoModel}
-                  onChange={(e) => setVideoModel(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white"
-                >
-                  {Object.entries(VIDEO_MODELS).map(([key, m]) => (
-                    <option key={key} value={key}>
-                      {m.name} - {m.description}
-                    </option>
-                  ))}
-                </select>
+                <div className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white">
+                  Google Veo 3.1 - 레퍼런스 이미지 지원
+                </div>
               </div>
             </div>
 
