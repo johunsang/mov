@@ -403,10 +403,6 @@ ${characterDescriptions.join("\n\n")}
     const styleGuide = generateStylePrompt(styleOptions, customGenre, customMood);
     const characterGuide = generateCharacterPrompt();
 
-    console.log("=== 스크립트 생성 시작 ===");
-    console.log("선택된 캐릭터 수:", selectedCharacters.length);
-    console.log("캐릭터 가이드:", characterGuide);
-
     try {
       setLoadingStep("스크립트 생성 중...");
 
@@ -435,11 +431,10 @@ ${styleGuide}
 ${sceneStyleGuide}
 
 ${characterGuide ? `${characterGuide}\n` : ""}
-이 장면에 대해 애니메이션될 때 부드럽고 영화같은 영상이 되도록 3개의 연속적인 이미지 프롬프트를 한글로 생성하세요:
+이 장면에 대해 Veo 3.1로 영상을 생성할 수 있도록 2개의 이미지 프롬프트(시작 프레임, 끝 프레임)를 한글로 생성하세요:
 
-1. 시작 프레임: 장면의 시작 상태 (위 스타일 가이드의 조명, 색감, 앵글 반영)
-2. 중간 프레임: 시작에서 약간의 진행/움직임 (카메라 무브먼트 반영)
-3. 끝 프레임: 다음 장면으로 자연스럽게 전환될 수 있는 구도
+1. 시작 프레임 (image): 장면의 시작 상태 (위 스타일 가이드의 조명, 색감, 앵글 반영)
+2. 끝 프레임 (last_frame): 장면의 끝 상태, 움직임과 변화가 자연스럽게 완료된 모습
 
 각 프롬프트는 매우 상세해야 합니다:
 - 조명 상태 (방향, 강도, 색온도)
@@ -451,8 +446,7 @@ ${characterGuide ? `${characterGuide}\n` : ""}
 
 응답은 반드시 다음 형식으로 작성하세요:
 FRAME1: [시작 프레임에 대한 매우 상세한 한글 프롬프트]
-FRAME2: [중간 프레임에 대한 매우 상세한 한글 프롬프트]
-FRAME3: [끝 프레임에 대한 매우 상세한 한글 프롬프트]`,
+FRAME2: [끝 프레임에 대한 매우 상세한 한글 프롬프트]`,
           }),
         });
 
@@ -460,14 +454,13 @@ FRAME3: [끝 프레임에 대한 매우 상세한 한글 프롬프트]`,
         if (sceneData.success) {
           const text = sceneData.text;
           const frame1Match = text.match(/FRAME1:\s*(.+?)(?=FRAME2:|$)/s);
-          const frame2Match = text.match(/FRAME2:\s*(.+?)(?=FRAME3:|$)/s);
-          const frame3Match = text.match(/FRAME3:\s*(.+?)$/s);
+          const frame2Match = text.match(/FRAME2:\s*(.+?)$/s);
 
           prompts.push({
             id: i,
-            prompt1: frame1Match ? frame1Match[1].trim() : "",
-            prompt2: frame2Match ? frame2Match[1].trim() : "",
-            prompt3: frame3Match ? frame3Match[1].trim() : "",
+            prompt1: frame1Match ? frame1Match[1].trim() : "",  // 시작 프레임 (image)
+            prompt2: frame2Match ? frame2Match[1].trim() : "",  // 끝 프레임 (last_frame)
+            prompt3: "",  // Veo 3.1은 2개 프레임만 사용
             settings: sceneSettings,
           });
         }
@@ -526,7 +519,8 @@ ${styleGuide}
 
         const sceneImages: string[] = [];
 
-        for (const prompt of [scene.prompt1, scene.prompt2, scene.prompt3]) {
+        // Veo 3.1용: 시작 프레임(prompt1)과 끝 프레임(prompt2)만 사용
+        for (const prompt of [scene.prompt1, scene.prompt2]) {
           if (!prompt) continue;
 
           const res = await fetch("/api/generate/image", {
@@ -558,7 +552,7 @@ ${styleGuide}
     if (!apiKey) return;
 
     const scene = imagePrompts[sceneIndex];
-    const prompts = [scene.prompt1, scene.prompt2, scene.prompt3];
+    const prompts = [scene.prompt1, scene.prompt2];  // Veo 3.1용: 2개 프레임만
     const prompt = prompts[imageIndex];
 
     if (!prompt) return;
@@ -709,9 +703,8 @@ ${characterGuide ? `${characterGuide}\n` : ""}
 각 장면 내용:
 ${imagePrompts.map((scene, idx) => `
 장면 ${idx + 1}:
-- 시작: ${scene.prompt1}
-- 중간: ${scene.prompt2}
-- 끝: ${scene.prompt3}
+- 시작 프레임: ${scene.prompt1}
+- 끝 프레임: ${scene.prompt2}
 `).join("\n")}
 
 각 장면에 대해 2-3개의 자막을 생성하세요. 자막은 짧고 임팩트 있게 작성하세요.
@@ -1701,11 +1694,10 @@ ${imagePrompts.map((scene, idx) => `
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   {[
-                    { label: "시작 프레임", value: scene.prompt1, index: 0 },
-                    { label: "중간 프레임", value: scene.prompt2, index: 1 },
-                    { label: "끝 프레임", value: scene.prompt3, index: 2 },
+                    { label: "시작 프레임 (image)", value: scene.prompt1, index: 0 },
+                    { label: "끝 프레임 (last_frame)", value: scene.prompt2, index: 1 },
                   ].map((frame) => (
                     <div key={frame.index}>
                       <label className="block text-xs text-zinc-500 mb-1">{frame.label}</label>
