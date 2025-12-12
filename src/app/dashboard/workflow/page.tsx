@@ -116,6 +116,10 @@ export default function WorkflowPage() {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("topic");
   const [topic, setTopic] = useState("");
+  const [topicBackground, setTopicBackground] = useState("");
+  const [topicMood, setTopicMood] = useState("");
+  const [topicScenes, setTopicScenes] = useState("");
+  const [topicSpecial, setTopicSpecial] = useState("");
   const [textModel, setTextModel] = useState("gemini");
   const [imageModel, setImageModel] = useState("nano-banana-pro");
   const videoModel = "veo-3.1"; // 고정
@@ -404,7 +408,13 @@ ${characterDescriptions.join("\n\n")}
             model: textModel,
             prompt: `당신은 전문 영화 감독이자 시각 연출가입니다. 부드러운 전환이 있는 고품질 영상을 만들어야 합니다.
 
+=== 영상 기획 ===
 주제: ${topic}
+${topicBackground ? `배경: ${topicBackground}` : ""}
+${topicMood ? `분위기: ${topicMood}` : ""}
+${topicScenes ? `주요 장면: ${topicScenes}` : ""}
+${topicSpecial ? `특별 요청: ${topicSpecial}` : ""}
+
 장면 ${i + 1} / 총 ${sceneCount}장면
 
 === 전체 영상 스타일 ===
@@ -460,7 +470,13 @@ FRAME2: [끝 프레임에 대한 매우 상세한 한글 프롬프트]`,
           model: textModel,
           prompt: `당신은 전문 영화 감독입니다. 이 주제를 바탕으로 영화적인 비디오 모션 프롬프트를 한글로 작성하세요. 150단어 이내로 작성하세요.
 
+=== 영상 기획 ===
 주제: ${topic}
+${topicBackground ? `배경: ${topicBackground}` : ""}
+${topicMood ? `분위기: ${topicMood}` : ""}
+${topicScenes ? `주요 장면: ${topicScenes}` : ""}
+${topicSpecial ? `특별 요청: ${topicSpecial}` : ""}
+
 장면 수: ${sceneCount}
 
 ${styleGuide}
@@ -666,6 +682,10 @@ ${styleGuide}
   const reset = () => {
     setStep("topic");
     setTopic("");
+    setTopicBackground("");
+    setTopicMood("");
+    setTopicScenes("");
+    setTopicSpecial("");
     setImagePrompts([]);
     setVideoPrompt("");
     setGeneratedImages([]);
@@ -692,7 +712,11 @@ ${styleGuide}
           model: textModel,
           prompt: `당신은 전문 영상 자막 작가입니다. 아래 영상 정보를 바탕으로 각 장면에 맞는 자막/나레이션을 생성하세요.
 
+=== 영상 기획 ===
 주제: ${topic}
+${topicBackground ? `배경: ${topicBackground}` : ""}
+${topicMood ? `분위기: ${topicMood}` : ""}
+
 총 장면 수: ${sceneCount}
 장면당 길이: 약 ${Math.round(durationPerScene)}초
 총 영상 길이: ${styleOptions.duration}초
@@ -1463,22 +1487,60 @@ ${imagePrompts.map((scene, idx) => `
               )}
             </div>
 
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">영상 주제 및 상세 설명</label>
-              <textarea
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder={`영상의 주제와 원하는 내용을 상세하게 작성해주세요.
-
-예시:
-- 주제: 옥토퍼스맨의 도시 모험
-- 배경: 현대 도시의 밤거리
-- 분위기: 긴장감 있는 액션
-- 주요 장면: 빌딩 사이를 날아다니는 히어로, 악당과의 대결
-- 특별한 요청사항이 있다면 작성해주세요`}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 min-h-[150px] resize-y"
-              />
-              <p className="text-xs text-zinc-500 mt-1">상세하게 작성할수록 더 정확한 스크립트가 생성됩니다</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">주제 *</label>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="예: 옥토퍼스맨의 도시 모험"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">배경</label>
+                <input
+                  type="text"
+                  value={topicBackground}
+                  onChange={(e) => setTopicBackground(e.target.value)}
+                  placeholder="예: 현대 도시의 밤거리, 네온사인이 빛나는 번화가"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">분위기</label>
+                <input
+                  type="text"
+                  value={topicMood}
+                  onChange={(e) => setTopicMood(e.target.value)}
+                  placeholder="예: 긴장감 있는 액션, 신비로운 분위기"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">주요 장면</label>
+                <textarea
+                  value={topicScenes}
+                  onChange={(e) => setTopicScenes(e.target.value)}
+                  placeholder="예: 빌딩 사이를 날아다니는 히어로, 악당과의 대결, 승리 후 도시를 바라보는 장면"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 min-h-[80px] resize-y"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">특별한 요청사항</label>
+                <textarea
+                  value={topicSpecial}
+                  onChange={(e) => setTopicSpecial(e.target.value)}
+                  placeholder="예: 슬로우모션 연출, 특정 색감 강조 등"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 min-h-[60px] resize-y"
+                />
+              </div>
+              <div className="p-3 bg-zinc-800/50 border border-zinc-700 rounded-xl">
+                <p className="text-xs text-zinc-400">
+                  <span className="text-purple-400 font-medium">등장인물</span>은 위 &quot;등장인물 선택&quot; 섹션에서 선택해주세요. 선택된 캐릭터가 스크립트에 자동 반영됩니다.
+                </p>
+              </div>
             </div>
 
             <button
