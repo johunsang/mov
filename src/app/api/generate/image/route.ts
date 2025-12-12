@@ -4,7 +4,7 @@ import { IMAGE_MODELS, ImageModelKey } from "@/lib/models";
 
 export async function POST(request: NextRequest) {
   try {
-    const { apiKey, model, prompt, aspectRatio = "16:9" } = await request.json();
+    const { apiKey, model, prompt, aspectRatio = "16:9", referenceImage } = await request.json();
 
     if (!apiKey) {
       return NextResponse.json({ error: "API 키가 필요합니다" }, { status: 400 });
@@ -17,11 +17,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "알 수 없는 모델입니다" }, { status: 400 });
     }
 
-    const input = {
+    const input: Record<string, unknown> = {
       prompt,
       aspect_ratio: aspectRatio,
       output_format: "png",
+      resolution: "1K",
     };
+
+    // 참조 이미지가 있으면 추가 (연속성 있는 이미지 생성)
+    if (referenceImage) {
+      input.image_input = [referenceImage];
+    }
 
     const output = await replicate.run(modelConfig.id as `${string}/${string}`, { input });
 

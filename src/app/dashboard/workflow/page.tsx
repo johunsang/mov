@@ -502,19 +502,35 @@ ${styleGuide}
 
         const sceneImages: string[] = [];
 
-        // Veo 3.1용: 시작 프레임(prompt1)과 끝 프레임(prompt2)만 사용
-        for (const prompt of [scene.prompt1, scene.prompt2]) {
-          if (!prompt) continue;
-
-          const res = await fetch("/api/generate/image", {
+        // 1. 시작 프레임 생성
+        if (scene.prompt1) {
+          const res1 = await fetch("/api/generate/image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ apiKey, model: imageModel, prompt }),
+            body: JSON.stringify({ apiKey, model: imageModel, prompt: scene.prompt1 }),
           });
+          const data1 = await res1.json();
+          if (data1.success) {
+            sceneImages.push(data1.url);
+          }
+        }
 
-          const data = await res.json();
-          if (data.success) {
-            sceneImages.push(data.url);
+        // 2. 끝 프레임 생성 (시작 프레임을 참조하여 연속성 유지)
+        if (scene.prompt2) {
+          const referenceImage = sceneImages.length > 0 ? sceneImages[0] : undefined;
+          const res2 = await fetch("/api/generate/image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              apiKey,
+              model: imageModel,
+              prompt: scene.prompt2,
+              referenceImage // 첫 번째 이미지를 참조로 전달
+            }),
+          });
+          const data2 = await res2.json();
+          if (data2.success) {
+            sceneImages.push(data2.url);
           }
         }
 
@@ -1448,14 +1464,21 @@ ${imagePrompts.map((scene, idx) => `
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">영상 주제</label>
-              <input
-                type="text"
+              <label className="block text-sm text-zinc-400 mb-2">영상 주제 및 상세 설명</label>
+              <textarea
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="만들고 싶은 영상의 주제를 입력하세요..."
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500"
+                placeholder={`영상의 주제와 원하는 내용을 상세하게 작성해주세요.
+
+예시:
+- 주제: 옥토퍼스맨의 도시 모험
+- 배경: 현대 도시의 밤거리
+- 분위기: 긴장감 있는 액션
+- 주요 장면: 빌딩 사이를 날아다니는 히어로, 악당과의 대결
+- 특별한 요청사항이 있다면 작성해주세요`}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 min-h-[150px] resize-y"
               />
+              <p className="text-xs text-zinc-500 mt-1">상세하게 작성할수록 더 정확한 스크립트가 생성됩니다</p>
             </div>
 
             <button
