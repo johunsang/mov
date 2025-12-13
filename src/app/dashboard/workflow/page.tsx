@@ -287,6 +287,9 @@ export default function WorkflowPage() {
 
   // 주제 히스토리 관련 상태
   const [topicHistory, setTopicHistory] = useState<TopicHistory[]>([]);
+  // 페이지네이션 상태
+  const [topicHistoryPage, setTopicHistoryPage] = useState(0);
+  const ITEMS_PER_PAGE = 5;
 
   // 주제 작업 모드 상태: "select" (선택 화면) | "edit" (편집 중)
   const [topicMode, setTopicMode] = useState<"select" | "edit">("select");
@@ -969,21 +972,28 @@ export default function WorkflowPage() {
     setTopicMode("select");
   };
 
-  // 주제 히스토리 삭제 (reserved for future UI feature)
-  // const deleteTopicFromHistory = (id: string) => {
-  //   const updatedHistory = topicHistory.filter((item) => item.id !== id);
-  //   setTopicHistory(updatedHistory);
-  //   localStorage.setItem("topicHistory", JSON.stringify(updatedHistory));
-  // };
+  // 주제 히스토리 삭제
+  const deleteTopicFromHistory = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // 버튼 클릭 시 부모 요소 클릭 방지
+    if (!confirm("이 주제를 삭제하시겠습니까?")) return;
+    const updatedHistory = topicHistory.filter((item) => item.id !== id);
+    setTopicHistory(updatedHistory);
+    localStorage.setItem("topicHistory", JSON.stringify(updatedHistory));
+    // 현재 편집 중인 주제가 삭제된 경우 초기화
+    if (currentTopicId === id) {
+      setCurrentTopicId(null);
+    }
+  };
 
-  // 주제 히스토리 즐겨찾기 토글 (reserved for future UI feature)
-  // const toggleTopicFavorite = (id: string) => {
-  //   const updatedHistory = topicHistory.map((item) =>
-  //     item.id === id ? { ...item, favorite: !item.favorite } : item
-  //   );
-  //   setTopicHistory(updatedHistory);
-  //   localStorage.setItem("topicHistory", JSON.stringify(updatedHistory));
-  // };
+  // 주제 히스토리 즐겨찾기 토글
+  const toggleTopicFavorite = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updatedHistory = topicHistory.map((item) =>
+      item.id === id ? { ...item, favorite: !item.favorite } : item
+    );
+    setTopicHistory(updatedHistory);
+    localStorage.setItem("topicHistory", JSON.stringify(updatedHistory));
+  };
 
   // 이미지 시드와 프롬프트를 토픽 히스토리에 저장
   const saveImageSeedsToHistory = (seeds: number[][], prompts: ImagePrompt[]) => {
@@ -1457,6 +1467,9 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
     frameLabel: string = ""
   ): Promise<{ success: boolean; url?: string; error?: string }> => {
     let lastError = "";
+    const currentBody = { ...body };
+    let triedWithoutRefImages = false;
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 1) {
@@ -1468,7 +1481,7 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
         const res = await fetch("/api/generate/image", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify(currentBody),
         });
         const data = await res.json();
 
@@ -1480,13 +1493,29 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
         const errorMsg = data.error || "알 수 없는 오류";
         lastError = errorMsg;
 
+        // E006 오류 (invalid input)는 주로 참조 이미지 문제 - 참조 이미지 없이 재시도
+        if (errorMsg.includes("E006") && currentBody.referenceImages && !triedWithoutRefImages) {
+          console.log(`${frameLabel}: E006 오류 발생 - 참조 이미지 없이 재시도...`);
+          setLoadingStep(`${frameLabel} 참조 이미지 없이 재시도 중...`);
+          triedWithoutRefImages = true;
+          delete currentBody.referenceImages;
+          // attempt 카운트는 증가하지만 재시도 대기는 짧게
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+
         const isRetryableError =
           errorMsg.includes("temporarily unavailable") ||
           errorMsg.includes("E004") ||
+          errorMsg.includes("E006") ||
           errorMsg.includes("rate limit") ||
           errorMsg.includes("timeout") ||
           errorMsg.includes("503") ||
-          errorMsg.includes("500");
+          errorMsg.includes("500") ||
+          errorMsg.includes("Prediction failed") ||
+          errorMsg.includes("null") ||
+          errorMsg.includes("failed") ||
+          errorMsg.includes("unavailable");
 
         if (!isRetryableError || attempt === maxRetries) {
           return { success: false, error: errorMsg };
@@ -1508,27 +1537,54 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
   const generateCharacterPrompt = (): string => {
     if (selectedCharacters.length === 0) return "";
 
-    const characterDescriptions = selectedCharacters.map((char, idx) => {
+    const characterDescriptions = selectedCharacters.map((char) => {
       const parts = [];
-      parts.push(`[캐릭터 ${idx + 1}: ${char.name}]`);
-      if (char.role) parts.push(`- 역할: ${char.role}`);
-      if (char.gender) parts.push(`- 성별: ${char.gender}`);
-      if (char.age) parts.push(`- 나이: ${char.age}`);
-      if (char.appearance) parts.push(`- 외모 (필수 반영): ${char.appearance}`);
-      if (char.clothing) parts.push(`- 의상 (필수 반영): ${char.clothing}`);
-      if (char.personality) parts.push(`- 성격/분위기: ${char.personality}`);
+      const roleLabel = char.role === "주인공" ? "★ 주인공" : char.role || "등장인물";
+      parts.push(`━━━ 【${roleLabel}】 ${char.name} ━━━`);
+      if (char.gender) parts.push(`• 성별: ${char.gender}`);
+      if (char.age) parts.push(`• 나이: ${char.age}`);
+      if (char.appearance) parts.push(`• 외모 (★반드시 준수★): ${char.appearance}`);
+      if (char.clothing) parts.push(`• 의상 (★반드시 준수★): ${char.clothing}`);
+      if (char.personality) parts.push(`• 성격/분위기: ${char.personality}`);
+      if (char.description) parts.push(`• 추가 설명: ${char.description}`);
       return parts.join("\n");
     });
 
+    // 주인공 캐릭터 먼저 정렬
+    const sortedChars = selectedCharacters.sort((a, b) => {
+      if (a.role === "주인공") return -1;
+      if (b.role === "주인공") return 1;
+      return 0;
+    });
+
+    // 주인공이 있으면 특별 강조
+    const protagonist = sortedChars.find(c => c.role === "주인공");
+    const protagonistWarning = protagonist ? `
+🚨🚨🚨 절대 준수 사항 🚨🚨🚨
+이 영상의 주인공은 "${protagonist.name}"입니다.
+- 성별: ${protagonist.gender || "미지정"}
+- 나이: ${protagonist.age || "미지정"}
+- 외모: ${protagonist.appearance || "미지정"}
+- 의상: ${protagonist.clothing || "미지정"}
+
+위 정보와 다른 캐릭터(예: 젊은 남자, 청년 등)를 절대 생성하지 마세요!
+모든 프레임에서 위 주인공의 외모를 정확히 묘사해야 합니다.
+` : "";
+
     return `
-=== 등장인물 정보 (매우 중요 - 반드시 준수) ===
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         🎭 등장인물 정보 (최우선 준수 사항) 🎭
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${protagonistWarning}
 ${characterDescriptions.join("\n\n")}
 
-⚠️ 중요 지침 - 캐릭터 일관성:
+⚠️ 캐릭터 일관성 필수 지침:
 1. 모든 장면에서 위 캐릭터들의 외모, 의상, 특징이 정확히 동일해야 합니다.
-2. 각 프레임 프롬프트에 캐릭터의 외모 특징(머리색, 피부톤, 체형 등)을 반드시 포함하세요.
-3. 캐릭터 이름을 프롬프트에 언급하지 말고, 외모 특징으로 묘사하세요.
+2. 각 프레임 프롬프트에 캐릭터의 외모 특징(머리색, 피부톤, 체형, 성별, 나이)을 반드시 포함하세요.
+3. 캐릭터 이름은 프롬프트에 언급하지 말고, 외모 특징으로만 묘사하세요.
 4. 의상은 모든 장면에서 동일하게 유지하세요 (스토리상 변경이 없다면).
+5. 주인공 정보와 다른 성별/나이/외모의 캐릭터를 임의로 생성하지 마세요.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     `.trim();
   };
 
@@ -1673,6 +1729,7 @@ ${topicSpecial ? `특별 요청: ${topicSpecial}` : ""}
 1. 모든 응답은 반드시 한글로 작성하세요. 영어 단어 사용 금지.
 2. 각 프롬프트는 매우 길고 상세하게 작성하세요 (최소 150단어 이상).
 3. 모든 시각적 요소를 구체적인 수치와 방향으로 명시하세요.
+4. 🚨 등장인물 정보가 주어지면 반드시 그 정보(성별, 나이, 외모, 의상)를 정확히 따르세요. 임의로 다른 캐릭터를 생성하지 마세요!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                  【 영상 기획 정보 】
@@ -1684,6 +1741,7 @@ ${topicScenes ? `• 주요 장면 구상: ${topicScenes}` : ""}
 ${topicStoryline ? `• 스토리 줄거리: ${topicStoryline}` : ""}
 ${topicSpecial ? `• 특별 요청사항: ${topicSpecial}` : ""}
 
+${characterGuide ? `${characterGuide}\n` : ""}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
          【 현재 작업: 장면 ${i + 1} / 총 ${sceneCount}장면 】
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1697,8 +1755,6 @@ ${detailedStyleGuide}
 ${imageStyleGuide}
 
 ${videoStyleGuide}
-
-${characterGuide ? `\n【등장 캐릭터 정보】\n${characterGuide}\n` : ""}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
               【 프롬프트 작성 가이드라인 】
@@ -1877,8 +1933,8 @@ JSON 형식으로 응답해주세요:
     };
 
     // 상대 경로를 절대 URL로 변환하는 함수
-    const toAbsoluteUrl = (url: string): string | null => {
-      if (!url) return null;
+    const toAbsoluteUrl = (url: unknown): string | null => {
+      if (!url || typeof url !== 'string') return null;
       // 이미 절대 URL이면 그대로 반환
       if (url.startsWith('http://') || url.startsWith('https://')) {
         return url;
@@ -1893,12 +1949,26 @@ JSON 형식으로 응답해주세요:
     };
 
     // 캐릭터 참조 이미지 수집 (절대 URL로 변환)
-    const characterReferenceImages: string[] = selectedCharacters
-      .flatMap(c => [...(c.referenceImages || []), ...(c.generatedImages || [])])
+    // Replicate에서 생성된 이미지 (replicate.delivery URL)를 우선 사용
+    const characterGeneratedImages: string[] = selectedCharacters
+      .flatMap(c => c.generatedImages || [])
+      .filter(img => img && (img.includes('replicate.delivery') || img.includes('replicate.com')));
+
+    // 업로드된 이미지는 절대 URL로 변환
+    const characterUploadedImages: string[] = selectedCharacters
+      .flatMap(c => c.referenceImages || [])
       .map(img => toAbsoluteUrl(img))
       .filter((img): img is string => img !== null);
 
-    console.log(`캐릭터 참조 이미지 ${characterReferenceImages.length}개 수집됨`, characterReferenceImages);
+    // Replicate 생성 이미지 우선, 그 다음 업로드 이미지
+    const characterReferenceImages: string[] = [
+      ...characterGeneratedImages,
+      ...characterUploadedImages,
+    ].filter((v, i, a) => a.indexOf(v) === i); // 중복 제거
+
+    console.log(`[참조이미지] 캐릭터 생성 이미지: ${characterGeneratedImages.length}개`, characterGeneratedImages);
+    console.log(`[참조이미지] 캐릭터 업로드 이미지: ${characterUploadedImages.length}개`, characterUploadedImages);
+    console.log(`[참조이미지] 총 캐릭터 참조 이미지: ${characterReferenceImages.length}개`);
 
     // allImages 배열은 히스토리 저장용으로 사용
     const allImages: { id: number; images: string[]; seeds: number[] }[] = [];
@@ -1919,24 +1989,56 @@ JSON 형식으로 응답해주세요:
         const aspectRatio = formatConfig?.aspectRatio || "16:9";
 
         // 참조 이미지 구성: 캐릭터 참조 + 이전 장면들의 이미지 (일관성 유지)
-        // 최대 14개, 캐릭터 참조 이미지 우선, 그 다음 최근 생성 이미지
-        const getConsistencyReferences = (additionalImages: string[] = []) => {
-          const refs = [
-            ...characterReferenceImages.slice(0, 6), // 캐릭터 참조 최대 6개
-            ...additionalImages,
-            ...previousGeneratedImages.slice(-6), // 최근 생성 이미지 최대 6개
-          ];
+        // 첫 장면: 캐릭터 업로드 이미지 사용, 이후 장면: 생성된 이미지 참조
+        const getConsistencyReferences = (additionalImages: string[] = [], sceneIndex: number = 0) => {
+          // 1. 캐릭터 업로드 이미지 (서버 URL - 캐릭터 외모 기준)
+          const charUploaded = characterUploadedImages.slice(0, 6);
+
+          // 2. 캐릭터 생성 이미지 (Replicate URL - 있다면 사용)
+          const charGenerated = characterGeneratedImages.slice(0, 4);
+
+          // 3. 이전 생성된 이미지 (일관성 유지용)
+          const previousGenerated = previousGeneratedImages.slice(-6);
+
+          // 4. 현재 장면의 추가 이미지 (시작 프레임 등)
+          const additional = additionalImages;
+
+          let refs: string[] = [];
+
+          if (sceneIndex === 0 && previousGeneratedImages.length === 0) {
+            // 첫 장면: 캐릭터 이미지만 사용 (캐릭터 외모 기준 설정)
+            refs = [
+              ...charUploaded,
+              ...charGenerated,
+              ...additional,
+            ];
+            console.log(`[참조이미지] 첫 장면 - 캐릭터 이미지 우선: 업로드 ${charUploaded.length}개, 생성 ${charGenerated.length}개`);
+          } else {
+            // 이후 장면: 이전 생성 이미지 + 캐릭터 이미지 (일관성 유지)
+            refs = [
+              ...charUploaded.slice(0, 2), // 캐릭터 참조 일부 유지
+              ...charGenerated.slice(0, 2),
+              ...additional, // 현재 장면 이미지
+              ...previousGenerated, // 이전 생성 이미지
+            ];
+            console.log(`[참조이미지] ${sceneIndex + 1}번째 장면 - 이전 이미지 참조: 캐릭터 ${charUploaded.slice(0, 2).length + charGenerated.slice(0, 2).length}개, 이전 ${previousGenerated.length}개, 추가 ${additional.length}개`);
+          }
+
           // 중복 제거 및 유효한 URL만 필터
           const uniqueRefs = [...new Set(refs)].filter(
             img => img && (img.startsWith('http://') || img.startsWith('https://'))
           );
-          return uniqueRefs.slice(0, 14);
+
+          const result = uniqueRefs.slice(0, 14);
+          console.log(`[참조이미지] 최종 결과: ${result.length}개`, result.map(url => url.substring(0, 60)));
+
+          return result;
         };
 
         // 1. 시작 프레임 생성 (재시도 로직 포함)
         if (scene.prompt1) {
           const promptWithDialogue = addDialogueToPrompt(scene.prompt1, scene.dialogue1);
-          const refImages = getConsistencyReferences();
+          const refImages = getConsistencyReferences([], i);
           const frameLabel = `장면 ${i + 1} 시작 프레임`;
 
           console.log(`${frameLabel}: 참조 이미지 ${refImages.length}개 사용`);
@@ -1948,7 +2050,7 @@ JSON 형식으로 응답해주세요:
             prompt: promptWithDialogue,
             aspectRatio,
             referenceImages: refImages.length > 0 ? refImages : undefined,
-          }, 3, frameLabel);
+          }, 5, frameLabel);
 
           if (result1.success && result1.url) {
             sceneImages.push(result1.url);
@@ -1964,7 +2066,7 @@ JSON 형식으로 응답해주세요:
         // 2. 끝 프레임 생성 (시작 프레임도 참조에 추가, 재시도 로직 포함)
         if (scene.prompt2) {
           const promptWithDialogue = addDialogueToPrompt(scene.prompt2, scene.dialogue2);
-          const refImages = getConsistencyReferences(sceneImages);
+          const refImages = getConsistencyReferences(sceneImages, i);
           const frameLabel = `장면 ${i + 1} 끝 프레임`;
 
           console.log(`${frameLabel}: 참조 이미지 ${refImages.length}개 사용`);
@@ -1976,7 +2078,7 @@ JSON 형식으로 응답해주세요:
             prompt: promptWithDialogue,
             aspectRatio,
             referenceImages: refImages.length > 0 ? refImages : undefined
-          }, 3, frameLabel);
+          }, 5, frameLabel);
 
           if (result2.success && result2.url) {
             sceneImages.push(result2.url);
@@ -2030,8 +2132,8 @@ JSON 형식으로 응답해주세요:
       const aspectRatio = formatConfig?.aspectRatio || "16:9";
 
       // 상대 경로를 절대 URL로 변환하는 함수
-      const toAbsoluteUrl = (url: string): string | null => {
-        if (!url) return null;
+      const toAbsoluteUrl = (url: unknown): string | null => {
+        if (!url || typeof url !== 'string') return null;
         if (url.startsWith('http://') || url.startsWith('https://')) return url;
         if (url.startsWith('/')) {
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
@@ -2102,6 +2204,252 @@ JSON 형식으로 응답해주세요:
   const scenesWithoutImages = imagePrompts
     .map((_, idx) => idx)
     .filter(idx => !generatedImages[idx]?.images?.length);
+
+  // 단일 장면 이미지 생성 (재생성 포함)
+  const generateSingleSceneImages = async (sceneIndex: number) => {
+    if (!apiKey) return;
+
+    const scene = imagePrompts[sceneIndex];
+    if (!scene) return;
+
+    setLoading(true);
+    setLoadingStep(`장면 ${sceneIndex + 1} 이미지 생성 중...`);
+    setError(null);
+
+    try {
+      const formatConfig = VIDEO_FORMATS.find(f => f.id === styleOptions.format);
+      const aspectRatio = formatConfig?.aspectRatio || "16:9";
+
+      const toAbsoluteUrl = (url: unknown): string | null => {
+        if (!url || typeof url !== 'string') return null;
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        if (url.startsWith('/')) {
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+          return `${baseUrl}${url}`;
+        }
+        return null;
+      };
+
+      // 캐릭터 참조 이미지
+      const characterRefImages = selectedCharacters
+        .flatMap(c => [...(c.referenceImages || []), ...(c.generatedImages || [])])
+        .map(img => toAbsoluteUrl(img))
+        .filter((img): img is string => img !== null);
+
+      // 이전 장면의 이미지도 참조로 추가
+      const previousImages = generatedImages
+        .slice(0, sceneIndex)
+        .flatMap(s => s.images)
+        .map(img => toAbsoluteUrl(img))
+        .filter((img): img is string => img !== null);
+
+      const referenceImages = [...characterRefImages.slice(0, 6), ...previousImages.slice(-6)]
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .slice(0, 14);
+
+      const sceneImages: string[] = [];
+      const prompts = [scene.prompt1, scene.prompt2];
+
+      for (let frameIdx = 0; frameIdx < prompts.length; frameIdx++) {
+        const prompt = prompts[frameIdx];
+        if (!prompt) continue;
+
+        setLoadingStep(`장면 ${sceneIndex + 1} ${frameIdx === 0 ? '시작' : '끝'} 프레임 생성 중...`);
+
+        const result = await generateImageWithRetry(
+          {
+            apiKey,
+            model: imageModel,
+            prompt,
+            aspectRatio,
+            referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
+          },
+          5,
+          `장면 ${sceneIndex + 1} ${frameIdx === 0 ? '시작' : '끝'} 프레임`
+        );
+
+        if (result.success && result.url) {
+          sceneImages.push(result.url);
+        } else {
+          setError(`장면 ${sceneIndex + 1} 프레임 ${frameIdx + 1} 생성 실패: ${result.error}`);
+          return;
+        }
+      }
+
+      // 이미지 업데이트
+      const newGeneratedImages = [...generatedImages];
+      while (newGeneratedImages.length <= sceneIndex) {
+        newGeneratedImages.push({ id: newGeneratedImages.length, images: [], seeds: [] });
+      }
+      newGeneratedImages[sceneIndex] = {
+        id: scene.id,
+        images: sceneImages,
+        seeds: [], // 단일 장면 생성에서는 seeds 미사용
+      };
+      setGeneratedImages(newGeneratedImages);
+      setImagesDownloaded(false);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "이미지 생성 실패";
+      console.error("Single scene image generation error:", errorMessage);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      setLoadingStep("");
+    }
+  };
+
+  // 단일 장면 영상 생성 (재생성 포함)
+  const generateSingleSceneVideo = async (sceneIndex: number) => {
+    if (!apiKey) return;
+
+    const sceneImages = generatedImages[sceneIndex]?.images;
+    if (!sceneImages || sceneImages.length === 0) {
+      setError(`장면 ${sceneIndex + 1}에 이미지가 없습니다. 먼저 이미지를 생성해주세요.`);
+      return;
+    }
+
+    setLoading(true);
+    setLoadingStep(`장면 ${sceneIndex + 1} 영상 생성 중...`);
+    setError(null);
+
+    try {
+      const sceneVideoPrompt = imagePrompts[sceneIndex]?.videoPrompt || `장면 ${sceneIndex + 1} 영상`;
+
+      const res = await fetch("/api/generate/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey,
+          model: videoModel,
+          prompt: sceneVideoPrompt,
+          referenceImages: sceneImages,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const newVideoUrls = [...videoUrls];
+        while (newVideoUrls.length <= sceneIndex) {
+          newVideoUrls.push("");
+        }
+        newVideoUrls[sceneIndex] = data.url;
+        setVideoUrls(newVideoUrls);
+        setVideoDownloaded(false);
+      } else {
+        const errorMsg = `장면 ${sceneIndex + 1} 영상 생성 실패: ${data.error || '알 수 없는 오류'}`;
+        console.error(errorMsg);
+        setError(errorMsg);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "영상 생성 실패";
+      console.error("Single scene video generation error:", errorMessage);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      setLoadingStep("");
+    }
+  };
+
+  // 단일 장면 스크립트 재생성
+  const regenerateSingleSceneScript = async (sceneIndex: number) => {
+    if (!apiKey || !topic) return;
+
+    setLoading(true);
+    setLoadingStep(`장면 ${sceneIndex + 1} 스크립트 재생성 중...`);
+    setError(null);
+
+    try {
+      const characterGuide = generateCharacterPrompt();
+      const detailedStyleGuide = generateDetailedStyleGuide();
+      const currentScene = imagePrompts[sceneIndex];
+      const sceneSettings: SceneSettings = currentScene?.settings || { ...defaultSceneSettings };
+      const imageStyleGuide = generateImageStylePrompt(sceneSettings);
+      const videoStyleGuide = generateVideoStylePrompt(sceneSettings);
+
+      const sceneRes = await fetch("/api/generate/text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey,
+          model: textModel,
+          prompt: `당신은 세계적인 영화감독이자 시네마토그래퍼입니다. AI 영상 생성 모델을 위한 최고 품질의 상세 프롬프트를 작성합니다.
+
+**★★★ 최우선 지침 ★★★**
+1. 모든 응답은 반드시 한글로 작성하세요. 영어 단어 사용 금지.
+2. 각 프롬프트는 매우 길고 상세하게 작성하세요 (최소 150단어 이상).
+3. 모든 시각적 요소를 구체적인 수치와 방향으로 명시하세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                 【 영상 기획 정보 】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• 주제: ${topic}
+${topicBackground ? `• 배경 설정: ${topicBackground}` : ""}
+${topicMood ? `• 원하는 분위기: ${topicMood}` : ""}
+${topicScenes ? `• 주요 장면 구상: ${topicScenes}` : ""}
+${topicStoryline ? `• 스토리 줄거리: ${topicStoryline}` : ""}
+${topicSpecial ? `• 특별 요청사항: ${topicSpecial}` : ""}
+
+${characterGuide ? `${characterGuide}\n` : ""}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+         【 재생성 대상: 장면 ${sceneIndex + 1} / 총 ${imagePrompts.length}장면 】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${sceneIndex === 0 ? "▶ 오프닝 장면: 시청자의 관심을 사로잡는 강렬한 첫인상" :
+  sceneIndex === imagePrompts.length - 1 ? "▶ 엔딩 장면: 여운과 감동을 남기는 마무리" :
+  sceneIndex === Math.floor(imagePrompts.length / 2) ? "▶ 클라이맥스 장면: 감정의 정점, 가장 인상적인 순간" :
+  `▶ 전개 장면: 스토리를 이어가는 중요한 연결고리`}
+
+${detailedStyleGuide}
+
+${imageStyleGuide}
+
+${videoStyleGuide}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    【 응답 형식 】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FRAME1: [시작 프레임 - 정적 이미지 묘사 - 최소 100단어]
+
+FRAME2: [끝 프레임 - 정적 이미지 묘사 - 최소 100단어]
+
+VIDEO: [이 장면의 상세한 모션/카메라/환경 변화 묘사 - 최소 200단어]`,
+        }),
+      });
+
+      const sceneData = await sceneRes.json();
+      if (sceneData.success) {
+        const text = sceneData.text;
+        const frame1Match = text.match(/FRAME1:\s*(.+?)(?=FRAME2:|VIDEO:|$)/s);
+        const frame2Match = text.match(/FRAME2:\s*(.+?)(?=VIDEO:|$)/s);
+        const videoMatch = text.match(/VIDEO:\s*(.+?)$/s);
+
+        const newPrompt: ImagePrompt = {
+          id: sceneIndex,
+          prompt1: frame1Match ? frame1Match[1].trim() : "",
+          prompt2: frame2Match ? frame2Match[1].trim() : "",
+          prompt3: "",
+          videoPrompt: videoMatch ? videoMatch[1].trim() : "",
+          settings: sceneSettings,
+        };
+
+        // 해당 장면만 업데이트
+        setImagePrompts(prev => {
+          const updated = [...prev];
+          updated[sceneIndex] = newPrompt;
+          return updated;
+        });
+      } else {
+        setError(`장면 ${sceneIndex + 1} 스크립트 재생성 실패: ${sceneData.error || '알 수 없는 오류'}`);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "스크립트 재생성 실패";
+      console.error("Single scene script regeneration error:", errorMessage);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      setLoadingStep("");
+    }
+  };
 
   // 장면별 영상 생성
   const generateVideo = async () => {
@@ -2625,40 +2973,80 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                     {topicHistory.length === 0 ? (
                       <p className="text-center text-zinc-500 text-sm py-4">저장된 주제가 없습니다</p>
                     ) : (
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {sortedTopicHistory.slice(0, 10).map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={() => loadTopicFromHistory(item)}
-                            className="w-full p-3 bg-zinc-700/50 hover:bg-zinc-700 rounded-lg text-left transition-colors flex items-center justify-between group"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                {item.favorite && <span className="text-yellow-400">⭐</span>}
-                                <span className="text-white font-medium truncate">{item.topic}</span>
+                      <>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {sortedTopicHistory
+                            .slice(topicHistoryPage * ITEMS_PER_PAGE, (topicHistoryPage + 1) * ITEMS_PER_PAGE)
+                            .map((item) => (
+                              <div
+                                key={item.id}
+                                className="w-full p-3 bg-zinc-700/50 hover:bg-zinc-700 rounded-lg text-left transition-colors flex items-center justify-between group"
+                              >
+                                <button
+                                  onClick={() => loadTopicFromHistory(item)}
+                                  className="flex-1 min-w-0 text-left"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {item.favorite && <span className="text-yellow-400">⭐</span>}
+                                    <span className="text-white font-medium truncate">{item.topic}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500">
+                                    {item.styleOptions && (
+                                      <>
+                                        <span className="bg-zinc-600/50 px-1.5 py-0.5 rounded">
+                                          {VIDEO_FORMATS.find(f => f.id === item.styleOptions?.format)?.name || item.styleOptions.format}
+                                        </span>
+                                        <span className="bg-zinc-600/50 px-1.5 py-0.5 rounded">
+                                          {VIDEO_GENRES.find(g => g.id === item.styleOptions?.genre)?.name || item.styleOptions.genre}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </button>
+                                <div className="flex items-center gap-1 ml-2">
+                                  <button
+                                    onClick={(e) => toggleTopicFavorite(item.id, e)}
+                                    className="p-1.5 hover:bg-zinc-600 rounded transition-colors"
+                                    title={item.favorite ? "즐겨찾기 해제" : "즐겨찾기"}
+                                  >
+                                    <Bookmark className={`w-4 h-4 ${item.favorite ? "text-yellow-400 fill-yellow-400" : "text-zinc-500"}`} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => deleteTopicFromHistory(item.id, e)}
+                                    className="p-1.5 hover:bg-red-600/50 rounded transition-colors"
+                                    title="삭제"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-zinc-500 hover:text-red-400" />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 mt-1 text-xs text-zinc-500">
-                                {item.styleOptions && (
-                                  <>
-                                    <span className="bg-zinc-600/50 px-1.5 py-0.5 rounded">
-                                      {VIDEO_FORMATS.find(f => f.id === item.styleOptions?.format)?.name || item.styleOptions.format}
-                                    </span>
-                                    <span className="bg-zinc-600/50 px-1.5 py-0.5 rounded">
-                                      {VIDEO_GENRES.find(g => g.id === item.styleOptions?.genre)?.name || item.styleOptions.genre}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-white transition-colors" />
-                          </button>
-                        ))}
-                        {topicHistory.length > 10 && (
-                          <p className="text-center text-zinc-500 text-xs py-2">
-                            +{topicHistory.length - 10}개 더 있음
-                          </p>
+                            ))}
+                        </div>
+                        {/* 페이지네이션 */}
+                        {sortedTopicHistory.length > ITEMS_PER_PAGE && (
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-700">
+                            <button
+                              onClick={() => setTopicHistoryPage(p => Math.max(0, p - 1))}
+                              disabled={topicHistoryPage === 0}
+                              className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              이전
+                            </button>
+                            <span className="text-xs text-zinc-500">
+                              {topicHistoryPage + 1} / {Math.ceil(sortedTopicHistory.length / ITEMS_PER_PAGE)}
+                            </span>
+                            <button
+                              onClick={() => setTopicHistoryPage(p => Math.min(Math.ceil(sortedTopicHistory.length / ITEMS_PER_PAGE) - 1, p + 1))}
+                              disabled={topicHistoryPage >= Math.ceil(sortedTopicHistory.length / ITEMS_PER_PAGE) - 1}
+                              className="flex items-center gap-1 px-2 py-1 text-xs text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              다음
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -3853,6 +4241,26 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                   <h3 className="font-semibold text-white">장면 {sceneIndex + 1}</h3>
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
+                      onClick={() => regenerateSingleSceneScript(sceneIndex)}
+                      disabled={loading}
+                      className="text-xs text-yellow-400 hover:text-yellow-300 flex items-center gap-1 px-2 py-1 rounded bg-yellow-600/20 disabled:opacity-50"
+                      title="이 장면의 스크립트만 재생성"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      스크립트 재생성
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => generateSingleSceneImages(sceneIndex)}
+                      disabled={loading}
+                      className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 px-2 py-1 rounded bg-green-600/20 disabled:opacity-50"
+                      title="이 장면의 이미지만 생성"
+                    >
+                      <ImageIcon className="w-3 h-3" />
+                      {generatedImages[sceneIndex]?.images?.length > 0 ? "이미지 재생성" : "이미지 생성"}
+                    </button>
+                    <button
                       onClick={() =>
                         setEditingSceneSettings(editingSceneSettings === sceneIndex ? null : sceneIndex)
                       }
@@ -4202,7 +4610,37 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
 
             {generatedImages.map((scene, sceneIndex) => (
               <div key={scene.id} className="border border-zinc-700 rounded-xl p-4">
-                <h3 className="font-semibold text-white mb-4">장면 {sceneIndex + 1}</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-white">장면 {sceneIndex + 1}</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => generateSingleSceneImages(sceneIndex)}
+                      disabled={loading}
+                      className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 px-2 py-1 rounded bg-purple-600/20 disabled:opacity-50"
+                      title="이 장면의 이미지 전체 재생성"
+                    >
+                      <ImageIcon className="w-3 h-3" />
+                      이미지 재생성
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => generateSingleSceneVideo(sceneIndex)}
+                      disabled={loading}
+                      className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 px-2 py-1 rounded bg-green-600/20 disabled:opacity-50"
+                      title="이 장면만 영상 생성"
+                    >
+                      <Video className="w-3 h-3" />
+                      {videoUrls[sceneIndex] ? "영상 재생성" : "영상 생성"}
+                    </button>
+                  </div>
+                </div>
+                {/* 기존 생성된 영상이 있으면 표시 */}
+                {videoUrls[sceneIndex] && (
+                  <div className="mb-4 rounded-lg overflow-hidden border border-green-600/30 bg-zinc-900">
+                    <video src={videoUrls[sceneIndex]} controls className="w-full aspect-video bg-black" />
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-4">
                   {scene.images.map((imageUrl, imgIndex) => (
                     <div key={imgIndex} className="relative group">
@@ -4225,7 +4663,7 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                           onClick={() => regenerateSceneImage(sceneIndex, imgIndex)}
                           disabled={loading}
                           className="p-2 bg-blue-600/80 rounded-lg text-white hover:bg-blue-600"
-                          title="이미지 재생성"
+                          title="이 프레임만 재생성"
                         >
                           <RefreshCw className="w-4 h-4" />
                         </button>
@@ -4339,21 +4777,42 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                   <div key={idx} className="border border-zinc-700 rounded-xl overflow-hidden bg-zinc-900">
                     <div className="flex items-center justify-between px-3 py-2 bg-zinc-800 border-b border-zinc-700">
                       <span className="text-sm font-medium text-white">장면 {idx + 1}</span>
-                      {url && (
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => downloadSingleVideo(url, idx)}
-                          className="px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded text-xs text-white flex items-center gap-1"
+                          type="button"
+                          onClick={() => generateSingleSceneVideo(idx)}
+                          disabled={loading}
+                          className="px-2 py-1 bg-purple-600/80 hover:bg-purple-600 disabled:opacity-50 rounded text-xs text-white flex items-center gap-1"
+                          title="이 장면의 영상만 재생성"
                         >
-                          <Download className="w-3 h-3" />
-                          다운로드
+                          <RefreshCw className="w-3 h-3" />
+                          재생성
                         </button>
-                      )}
+                        {url && (
+                          <button
+                            onClick={() => downloadSingleVideo(url, idx)}
+                            className="px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded text-xs text-white flex items-center gap-1"
+                          >
+                            <Download className="w-3 h-3" />
+                            다운로드
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {url ? (
                       <video src={url} controls className="w-full aspect-video bg-black" />
                     ) : (
-                      <div className="w-full aspect-video bg-zinc-800 flex items-center justify-center">
+                      <div className="w-full aspect-video bg-zinc-800 flex items-center justify-center flex-col gap-2">
                         <span className="text-zinc-500 text-sm">생성 실패</span>
+                        <button
+                          type="button"
+                          onClick={() => generateSingleSceneVideo(idx)}
+                          disabled={loading}
+                          className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded-lg text-xs text-white flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          다시 생성
+                        </button>
                       </div>
                     )}
                     {/* 해당 장면에 사용된 이미지 */}

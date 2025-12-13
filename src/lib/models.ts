@@ -20,8 +20,14 @@ export const IMAGE_MODELS = {
   "nano-banana-pro": {
     id: "google/nano-banana-pro",
     name: "Nano Banana Pro",
-    description: "고품질 이미지 생성",
-    pricePerRun: 0.02, // $0.02 per image
+    description: "고품질 이미지 생성 (텍스트 포함 가능)",
+    pricePerRun: 0.15, // $0.15 per image (2K)
+  },
+  "flux-schnell": {
+    id: "black-forest-labs/flux-schnell",
+    name: "FLUX Schnell",
+    description: "빠른 이미지 생성 (1-4 steps)",
+    pricePerRun: 0.003, // $0.003 per image
   },
 };
 
