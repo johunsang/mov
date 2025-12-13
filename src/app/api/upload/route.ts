@@ -56,8 +56,8 @@ export async function POST(request: Request) {
 
     await writeFile(filepath, buffer);
 
-    // 공개 URL 반환 (API 라우트를 통해 서빙)
-    const url = `/api/uploads/${session.user.id}/${filename}`;
+    // 공개 URL 반환 (public 폴더에서 직접 서빙)
+    const url = `/uploads/${session.user.id}/${filename}`;
 
     return NextResponse.json({ url, filename });
   } catch (error) {

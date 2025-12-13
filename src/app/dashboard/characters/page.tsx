@@ -235,8 +235,11 @@ export default function CharactersPage() {
     setGenerating(true);
 
     try {
-      // 캐릭터 정보로 프롬프트 생성
-      const characterPrompt = `고품질 캐릭터 초상화, ${formData.gender || ""} ${formData.age || ""}, ${formData.appearance}. ${formData.clothing ? `의상: ${formData.clothing}` : ""} ${formData.personality ? `분위기: ${formData.personality}` : ""}`.trim();
+      // 캐릭터 정보로 프롬프트 생성 (영문으로 변환하여 더 좋은 결과)
+      const characterPrompt = `High quality character portrait, ${formData.gender || ""} ${formData.age || ""}, ${formData.appearance}. ${formData.clothing ? `Outfit: ${formData.clothing}` : ""} ${formData.personality ? `Mood: ${formData.personality}` : ""} Consistent character appearance, detailed face, professional illustration style.`.trim();
+
+      // 참조 이미지가 있으면 함께 전송
+      const referenceImages = [...formData.referenceImages, ...formData.generatedImages];
 
       const res = await fetch("/api/generate/image", {
         method: "POST",
@@ -245,6 +248,7 @@ export default function CharactersPage() {
           apiKey,
           model: "nano-banana-pro",
           prompt: characterPrompt,
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
         }),
       });
 

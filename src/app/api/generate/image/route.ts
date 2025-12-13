@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Replicate from "replicate";
 import { IMAGE_MODELS, ImageModelKey } from "@/lib/models";
 
+const PUBLIC_DOMAIN = "https://mov.hwasubun.ai";
+
 export async function POST(request: NextRequest) {
   try {
     const {
@@ -13,7 +15,10 @@ export async function POST(request: NextRequest) {
     } = await request.json();
 
     if (!apiKey) {
-      return NextResponse.json({ error: "API 키가 필요합니다" }, { status: 400 });
+      return NextResponse.json(
+        { error: "API key is required" },
+        { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } }
+      );
     }
 
     const replicate = new Replicate({ auth: apiKey });
@@ -23,7 +28,10 @@ export async function POST(request: NextRequest) {
     const modelConfig = IMAGE_MODELS[modelKey as ImageModelKey];
 
     if (!modelConfig) {
-      return NextResponse.json({ error: "알 수 없는 모델입니다" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Unknown model" },
+        { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } }
+      );
     }
 
     // 모델별 설정
@@ -42,25 +50,54 @@ export async function POST(request: NextRequest) {
         safety_filter_level: "block_only_high",
       };
 
-      // 참조 이미지 처리 - Replicate 공개 URL만 사용
+      // 참조 이미지 처리 - 모든 이미지를 공개 URL로 변환
       if (referenceImages && referenceImages.length > 0) {
-        // Replicate URL만 필터 (공개 접근 가능한 URL)
-        const replicateUrls = referenceImages.filter((img: string) =>
-          img && typeof img === 'string' &&
-          (img.includes('replicate.delivery') || img.includes('replicate.com') || img.includes('pbxt.replicate.delivery'))
-        );
+        const processedImages: string[] = [];
+
+        for (const img of referenceImages) {
+          if (!img || typeof img !== 'string') continue;
+
+          // 이미 공개 URL인 경우 그대로 사용
+          if (img.startsWith('https://') || img.startsWith('http://')) {
+            processedImages.push(img);
+            continue;
+          }
+
+          // 로컬 경로인 경우 공개 URL로 변환
+          // /api/uploads/userId/filename -> https://mov.hwasubun.ai/uploads/userId/filename
+          // /uploads/userId/filename -> https://mov.hwasubun.ai/uploads/userId/filename
+          if (img.includes('/uploads/')) {
+            let publicPath = img;
+            // /api/uploads/ -> /uploads/
+            if (img.includes('/api/uploads/')) {
+              publicPath = img.replace('/api/uploads/', '/uploads/');
+            }
+            // 상대 경로를 절대 URL로 변환
+            if (publicPath.startsWith('/')) {
+              publicPath = `${PUBLIC_DOMAIN}${publicPath}`;
+            }
+            processedImages.push(publicPath);
+            console.log(`[API Image] 로컬 이미지 URL 변환: ${img} -> ${publicPath}`);
+            continue;
+          }
+
+          // 다른 상대 경로도 공개 URL로 변환
+          if (img.startsWith('/')) {
+            processedImages.push(`${PUBLIC_DOMAIN}${img}`);
+          }
+        }
 
         console.log(`[API Image] 참조 이미지 분석:`, {
           total: referenceImages.length,
-          replicateUrls: replicateUrls.length,
+          processed: processedImages.length,
+          urls: processedImages.slice(0, 3).map(u => u.substring(0, 60) + '...'),
         });
 
-        // Replicate URL만 사용 (서버 내부 URL은 제외 - E006 오류 방지)
-        if (replicateUrls.length > 0) {
-          baseInput.image_input = replicateUrls.slice(0, 14);
-          console.log(`[API Image] ${replicateUrls.length}개 Replicate 참조 이미지 사용`);
+        if (processedImages.length > 0) {
+          baseInput.image_input = processedImages.slice(0, 14);
+          console.log(`[API Image] ${processedImages.length}개 참조 이미지 사용`);
         } else {
-          console.log(`[API Image] 유효한 Replicate 참조 이미지 없음 - 참조 이미지 없이 생성`);
+          console.log(`[API Image] 유효한 참조 이미지 없음 - 참조 이미지 없이 생성`);
         }
       } else {
         console.log(`[API Image] 참조 이미지 없이 생성`);
@@ -165,8 +202,8 @@ export async function POST(request: NextRequest) {
     if (!url || typeof url !== 'string' || !url.startsWith('http')) {
       console.error("[API Image] Invalid URL returned:", url, "type:", typeof url);
       return NextResponse.json(
-        { error: "유효하지 않은 이미지 URL이 반환되었습니다" },
-        { status: 500 }
+        { error: "Invalid image URL returned from API" },
+        { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
       );
     }
 
@@ -175,8 +212,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Image generation error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "이미지 생성 실패" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Image generation failed" },
+      { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
     );
   }
 }
