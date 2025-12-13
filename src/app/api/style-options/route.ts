@@ -72,7 +72,8 @@ export async function POST(request: NextRequest) {
     const validTypes = [
       "genre", "mood", "visualStyle", "lightingStyle", "cameraAngle",
       "shotSize", "cameraMovement", "pacing", "transitionStyle",
-      "colorGrade", "timeSetting", "weatherSetting", "format", "duration"
+      "colorGrade", "timeSetting", "weatherSetting", "format", "duration",
+      "cameraStyle"
     ];
 
     if (!validTypes.includes(type)) {

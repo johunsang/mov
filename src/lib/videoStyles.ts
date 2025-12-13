@@ -126,6 +126,44 @@ export const LIGHTING_STYLES = [
   { id: "candlelight", name: "촛불", description: "따뜻한 촛불 조명, 아늑한", icon: "🕯️" },
 ];
 
+// ==================== 카메라 스타일/장비 ====================
+export const CAMERA_STYLES = [
+  // 시네마 카메라
+  { id: "arri-alexa", name: "ARRI Alexa", description: "할리우드 영화 표준, 풍부한 색감과 다이내믹 레인지", icon: "🎬", prompt: "shot on ARRI Alexa 35, cinematic film look, rich colors, wide dynamic range" },
+  { id: "red-v-raptor", name: "RED V-Raptor", description: "8K 고해상도, 날카롭고 선명한 이미지", icon: "🔴", prompt: "shot on RED V-Raptor 8K, ultra sharp, high resolution, cinematic" },
+  { id: "sony-venice", name: "Sony Venice", description: "시네마틱 풀프레임, 부드러운 스킨톤", icon: "🎥", prompt: "shot on Sony Venice 2, full frame cinematic, natural skin tones, film-like" },
+  { id: "blackmagic-ursa", name: "Blackmagic URSA", description: "12K 시네마, 놀라운 디테일", icon: "⬛", prompt: "shot on Blackmagic URSA 12K, incredible detail, cinematic color science" },
+
+  // 미러리스/DSLR
+  { id: "canon-eos-r5", name: "Canon EOS R5", description: "8K 미러리스, 자연스러운 색감, 인물 촬영 최적화", icon: "📷", prompt: "shot on Canon EOS R5, 85mm f/1.4 lens, natural colors, beautiful bokeh, professional portrait" },
+  { id: "sony-a7s3", name: "Sony A7S III", description: "저조도 킹, 부드러운 영상, 뛰어난 ISO 성능", icon: "🌙", prompt: "shot on Sony A7S III, excellent low light, smooth video, cinematic look" },
+  { id: "sony-a1", name: "Sony A1", description: "8K 풀프레임, 빠른 AF, 스포츠/액션 최적화", icon: "⚡", prompt: "shot on Sony A1, 8K resolution, fast autofocus, sharp action shots" },
+  { id: "nikon-z9", name: "Nikon Z9", description: "8K 플래그십, 자연스러운 색 재현", icon: "📸", prompt: "shot on Nikon Z9, natural color reproduction, 8K video, professional quality" },
+  { id: "panasonic-s1h", name: "Panasonic S1H", description: "6K 시네마 미러리스, V-Log, 다큐멘터리 최적화", icon: "🎞️", prompt: "shot on Panasonic S1H, 6K video, V-Log, documentary style, natural look" },
+  { id: "fuji-x-h2s", name: "Fujifilm X-H2S", description: "6.2K, 필름 시뮬레이션, 빈티지 색감", icon: "🎨", prompt: "shot on Fujifilm X-H2S, film simulation, vintage colors, beautiful skin tones" },
+
+  // 빈티지/필름 카메라
+  { id: "35mm-film", name: "35mm 필름", description: "클래식 필름 그레인, 따뜻한 아날로그 느낌", icon: "🎞️", prompt: "shot on 35mm film, natural film grain, warm analog tones, classic cinema look" },
+  { id: "16mm-film", name: "16mm 필름", description: "인디 영화 느낌, 거친 그레인, 빈티지", icon: "📽️", prompt: "shot on 16mm film, indie film aesthetic, visible grain, vintage look" },
+  { id: "super-8", name: "Super 8mm", description: "홈무비 느낌, 강한 그레인, 노스탤지어", icon: "📼", prompt: "shot on Super 8mm film, home movie aesthetic, heavy grain, nostalgic, warm tones" },
+  { id: "medium-format", name: "중형 필름", description: "대형 포맷, 얕은 심도, 풍부한 디테일", icon: "🖼️", prompt: "shot on medium format film, shallow depth of field, incredible detail, creamy bokeh" },
+  { id: "polaroid", name: "폴라로이드", description: "인스턴트 사진, 독특한 색감, 빈티지 테두리", icon: "📸", prompt: "shot on Polaroid instant camera, unique color cast, white border, vintage aesthetic" },
+
+  // 특수 카메라
+  { id: "iphone-pro", name: "iPhone Pro", description: "스마트폰 시네마틱, ProRes, 모던 감성", icon: "📱", prompt: "shot on iPhone 15 Pro Max, cinematic mode, ProRes, modern smartphone filmmaking" },
+  { id: "gopro-hero", name: "GoPro", description: "액션캠, 광각, 역동적인 POV 샷", icon: "🏄", prompt: "shot on GoPro Hero, ultra wide angle, action camera, dynamic POV, immersive" },
+  { id: "drone-aerial", name: "드론 항공", description: "공중 촬영, 광활한 풍경, 시네마틱 드론", icon: "🚁", prompt: "shot on DJI Inspire 3 drone, aerial cinematography, sweeping landscape, bird's eye view" },
+  { id: "security-cam", name: "CCTV/보안캠", description: "감시카메라 느낌, 저해상도, found footage", icon: "📹", prompt: "shot on security camera, CCTV footage, low resolution, surveillance aesthetic, found footage" },
+  { id: "webcam", name: "웹캠", description: "화상통화 느낌, 로우파이, 인터넷 방송", icon: "💻", prompt: "shot on webcam, video call aesthetic, lo-fi quality, internet broadcast style" },
+
+  // 렌즈 스타일
+  { id: "anamorphic", name: "아나모픽 렌즈", description: "시네마스코프, 타원형 보케, 렌즈 플레어", icon: "🎬", prompt: "shot with anamorphic lens, cinemascope 2.39:1, oval bokeh, beautiful lens flares, cinematic" },
+  { id: "vintage-lens", name: "빈티지 렌즈", description: "올드 렌즈, 부드러운 글로우, 캐릭터 있는", icon: "🔮", prompt: "shot with vintage lens, soft glow, character, imperfections, dreamy" },
+  { id: "tilt-shift", name: "틸트시프트", description: "미니어처 효과, 선택적 초점", icon: "🏘️", prompt: "shot with tilt-shift lens, miniature effect, selective focus, toy-like appearance" },
+  { id: "fisheye", name: "피쉬아이", description: "초광각 왜곡, 구면 효과, 익스트림", icon: "🐟", prompt: "shot with fisheye lens, extreme wide angle, barrel distortion, immersive" },
+  { id: "macro", name: "매크로", description: "극접사, 미세한 디테일, 얕은 심도", icon: "🔬", prompt: "shot with macro lens, extreme close-up, incredible detail, shallow depth of field" },
+];
+
 // ==================== 카메라 앵글 (신규) ====================
 export const CAMERA_ANGLES = [
   { id: "eye-level", name: "아이레벨", description: "눈높이에서 촬영, 가장 자연스러운", icon: "👁️" },
@@ -372,6 +410,7 @@ export interface VideoStyleOptions {
   weatherSetting?: string; // deprecated, kept for compatibility
   format: string;
   duration: string;
+  cameraStyle?: string; // 카메라 스타일/장비
 }
 
 // ==================== 스타일 프롬프트 생성 ====================
@@ -388,6 +427,7 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
   const time = TIME_SETTINGS.find((t) => t.id === options.timeSetting);
   const format = VIDEO_FORMATS.find((f) => f.id === options.format);
   const duration = VIDEO_DURATIONS.find((d) => d.id === options.duration);
+  const cameraStyle = options.cameraStyle ? CAMERA_STYLES.find((cs) => cs.id === options.cameraStyle) : null;
 
   // 커스텀 장르/분위기 처리
   const genreText = options.genre === "custom" && customGenre
@@ -397,6 +437,13 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
   const moodText = options.mood === "custom" && customMood
     ? `${customMood} (사용자 정의 분위기)`
     : `${mood?.name} (${mood?.description})`;
+
+  // 카메라 스타일 텍스트 생성
+  const cameraStyleSection = cameraStyle
+    ? `- 카메라/렌즈: ${cameraStyle.name} (${cameraStyle.description})\n`
+    : '';
+
+  const cameraStylePrompt = cameraStyle?.prompt || '';
 
   return `
 [영상 제작 스타일 가이드]
@@ -413,7 +460,7 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
 - 시간대: ${time?.name} (${time?.description})
 
 ■ 촬영 기법
-- 카메라 앵글: ${angle?.name} (${angle?.description})
+${cameraStyleSection}- 카메라 앵글: ${angle?.name} (${angle?.description})
 - 샷 크기: ${shot?.name} (${shot?.description})
 - 카메라 움직임: ${camera?.name} (${camera?.description})
 
@@ -426,7 +473,7 @@ export function generateStylePrompt(options: VideoStyleOptions, customGenre?: st
 2. ${format?.aspectRatio} 화면비에 맞는 구도로 촬영을 구성하세요.
 3. ${time?.name} 시간대의 자연스러운 조명과 ${color?.name} 색보정을 활용하세요.
 4. ${camera?.name} 카메라 움직임으로 ${mood?.name} 분위기를 연출하세요.
-5. 장면 전환은 ${transition?.name} 스타일을 사용하세요.
+5. 장면 전환은 ${transition?.name} 스타일을 사용하세요.${cameraStylePrompt ? `\n6. 촬영 룩: ${cameraStylePrompt}` : ''}
 `.trim();
 }
 
