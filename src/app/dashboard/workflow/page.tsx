@@ -2046,29 +2046,23 @@ JSON 형식으로 응답해주세요:
     // 캐릭터 일관성을 위해 이전에 생성된 이미지들 저장
     const previousGeneratedImages: string[] = [];
 
-    // 장면별 참조 이미지가 비어있으면 캐릭터 + 스타일 이미지로 자동 채우기
+    // 장면별 참조 이미지가 비어있으면 기존 characterReferenceImages + 스타일 이미지로 자동 채우기
+    console.log(`[자동 채우기 시작] characterReferenceImages: ${characterReferenceImages.length}개, styleRefImages: ${styleRefImages.length}개`);
+    console.log(`[자동 채우기] characterReferenceImages:`, characterReferenceImages.slice(0, 3));
+
     const updatedImagePrompts = imagePrompts.map(scene => {
+      console.log(`[자동 채우기] 장면 ${scene.id}: 기존 referenceImages ${scene.referenceImages?.length || 0}개`);
       if (!scene.referenceImages || scene.referenceImages.length === 0) {
-        // 캐릭터 이미지 수집
-        const charImages: string[] = [];
-        selectedCharacters.forEach((char) => {
-          const mode = characterImageModes[char.id] || "ai_reference";
-          if (mode === "ai_create") return; // 새로 생성 모드면 건너뛰기
-          if (char.referenceImages) charImages.push(...char.referenceImages);
-          if (char.generatedImages) {
-            charImages.push(...char.generatedImages.filter(img =>
-              img && (img.includes('replicate.delivery') || img.includes('replicate.com'))
-            ));
-          }
-        });
-        // 스타일 이미지 추가
-        const allRefs = [...charImages, ...styleRefImages].slice(0, 14);
-        console.log(`[자동 참조이미지] 장면 ${scene.id}: ${allRefs.length}개 이미지 자동 설정`);
+        // 이미 수집된 characterReferenceImages 사용
+        const allRefs = [...characterReferenceImages, ...styleRefImages].slice(0, 14);
+        console.log(`[자동 참조이미지] 장면 ${scene.id}: ${allRefs.length}개 이미지 자동 설정 (캐릭터: ${characterReferenceImages.length}, 스타일: ${styleRefImages.length})`);
         return { ...scene, referenceImages: allRefs };
       }
       return scene;
     });
     setImagePrompts(updatedImagePrompts);
+
+    console.log(`[자동 채우기 완료] 첫번째 장면 referenceImages:`, updatedImagePrompts[0]?.referenceImages?.slice(0, 3));
 
     try {
       for (let i = 0; i < updatedImagePrompts.length; i++) {
