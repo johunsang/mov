@@ -795,8 +795,14 @@ export default function WorkflowPage() {
       const restoredCharacters = characters.filter((c) =>
         item.characterIds!.includes(c.id)
       );
+      console.log("[히스토리 로드] 캐릭터 복원:", {
+        savedCharacterIds: item.characterIds,
+        availableCharacters: characters.length,
+        restoredCharacters: restoredCharacters.map(c => c.name),
+      });
       setSelectedCharacters(restoredCharacters);
     } else {
+      console.log("[히스토리 로드] 저장된 캐릭터 없음");
       setSelectedCharacters([]);
     }
 
@@ -1630,6 +1636,13 @@ ${characterDescriptions.join("\n\n")}
     const _styleGuide = generateStylePrompt(styleOptions, customGenre, customMood);
     void _styleGuide; // reserved for future use in script generation
     const characterGuide = generateCharacterPrompt();
+
+    console.log("[스크립트 생성] 캐릭터 정보:", {
+      selectedCharactersCount: selectedCharacters.length,
+      selectedCharacterNames: selectedCharacters.map(c => c.name),
+      characterGuideLength: characterGuide.length,
+      characterGuidePreview: characterGuide.substring(0, 200),
+    });
 
     try {
       // 1단계: AI에게 각 장면별 촬영 설정 추천 요청
