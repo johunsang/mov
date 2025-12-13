@@ -104,30 +104,48 @@ export async function POST(request: NextRequest) {
         // 이미 문자열인 경우
         if (typeof item === 'string') return item;
 
-        // 객체인 경우
+        // 객체인 경우 - 직접 href 접근 시도
         if (typeof item === 'object') {
-          const obj = item as Record<string, unknown>;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const obj = item as any;
 
-          // URL 객체 구조 감지 (href, origin, protocol, hostname 속성이 있으면 URL 객체)
-          if ('href' in obj && 'origin' in obj && 'protocol' in obj && 'hostname' in obj) {
-            console.log("[API Image] URL 객체 감지됨, href 추출");
-            return String(obj.href);
+          // 직접 href 속성 접근 (URL 객체 포함 모든 객체에서 작동)
+          try {
+            if (obj.href && typeof obj.href === 'string' && obj.href.startsWith('http')) {
+              console.log("[API Image] href 속성에서 URL 추출:", obj.href.substring(0, 50));
+              return obj.href;
+            }
+          } catch (e) {
+            // href 접근 실패
           }
 
-          // href 속성만 있는 경우
-          if ('href' in obj && typeof obj.href === 'string') {
-            return obj.href;
+          // url 속성 시도
+          try {
+            if (typeof obj.url === 'function') {
+              const urlResult = obj.url();
+              if (typeof urlResult === 'string' && urlResult.startsWith('http')) {
+                console.log("[API Image] url() 메서드에서 URL 추출");
+                return urlResult;
+              }
+            }
+            if (typeof obj.url === 'string' && obj.url.startsWith('http')) {
+              console.log("[API Image] url 속성에서 URL 추출");
+              return obj.url;
+            }
+          } catch (e) {
+            // url 접근 실패
           }
 
-          // url 속성이 있는 경우
-          if ('url' in obj) {
-            if (typeof obj.url === 'function') return obj.url();
-            if (typeof obj.url === 'string') return obj.url;
+          // toString 시도
+          try {
+            const str = String(item);
+            if (str.startsWith('http')) {
+              console.log("[API Image] toString에서 URL 추출");
+              return str;
+            }
+          } catch (e) {
+            // toString 실패
           }
-
-          // toString이 유용한 결과를 반환하는 경우
-          const str = String(item);
-          if (str.startsWith('http')) return str;
         }
 
         return "";
