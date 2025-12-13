@@ -1551,10 +1551,42 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
   const generateCharacterPrompt = (): string => {
     if (selectedCharacters.length === 0) return "";
 
-    const characterDescriptions = selectedCharacters.map((char) => {
+    // 캐릭터별 참조 이미지 번호 매핑 계산
+    // 순서: 업로드 이미지 (최대 4개) → 생성 이미지 (최대 2개)
+    let imageIndex = 1;
+    const characterImageMapping: { name: string; imageRange: string; hasImages: boolean }[] = [];
+
+    selectedCharacters.forEach((char) => {
+      const uploadedCount = Math.min((char.referenceImages || []).length, 4);
+      const generatedCount = Math.min((char.generatedImages || []).filter(img =>
+        img && (img.includes('replicate.delivery') || img.includes('replicate.com'))
+      ).length, 2);
+      const totalImages = uploadedCount + generatedCount;
+
+      if (totalImages > 0) {
+        const startIdx = imageIndex;
+        const endIdx = imageIndex + totalImages - 1;
+        characterImageMapping.push({
+          name: char.name,
+          imageRange: totalImages === 1 ? `Image ${startIdx}` : `Image ${startIdx}-${endIdx}`,
+          hasImages: true
+        });
+        imageIndex += totalImages;
+      } else {
+        characterImageMapping.push({
+          name: char.name,
+          imageRange: "없음",
+          hasImages: false
+        });
+      }
+    });
+
+    const characterDescriptions = selectedCharacters.map((char, idx) => {
       const parts = [];
       const roleLabel = char.role === "주인공" ? "★ 주인공" : char.role || "등장인물";
-      parts.push(`━━━ 【${roleLabel}】 ${char.name} ━━━`);
+      const mapping = characterImageMapping[idx];
+      const imageInfo = mapping.hasImages ? ` [참조: ${mapping.imageRange}]` : "";
+      parts.push(`━━━ 【${roleLabel}】 ${char.name}${imageInfo} ━━━`);
       if (char.gender) parts.push(`• 성별: ${char.gender}`);
       if (char.age) parts.push(`• 나이: ${char.age}`);
       if (char.appearance) parts.push(`• 외모 (★반드시 준수★): ${char.appearance}`);
@@ -1573,9 +1605,11 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
 
     // 주인공이 있으면 특별 강조
     const protagonist = sortedChars.find(c => c.role === "주인공");
+    const protagonistMapping = characterImageMapping.find(m => m.name === protagonist?.name);
+    const protagonistImageInfo = protagonistMapping?.hasImages ? ` (${protagonistMapping.imageRange} 참조)` : "";
     const protagonistWarning = protagonist ? `
 🚨🚨🚨 절대 준수 사항 🚨🚨🚨
-이 영상의 주인공은 "${protagonist.name}"입니다.
+이 영상의 주인공은 "${protagonist.name}"입니다${protagonistImageInfo}.
 - 성별: ${protagonist.gender || "미지정"}
 - 나이: ${protagonist.age || "미지정"}
 - 외모: ${protagonist.appearance || "미지정"}
@@ -1585,17 +1619,24 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
 모든 프레임에서 위 주인공의 외모를 정확히 묘사해야 합니다.
 ` : "";
 
+    // 이미지 참조 안내 생성
+    const imageRefGuide = characterImageMapping.some(m => m.hasImages) ? `
+📷 참조 이미지 안내:
+${characterImageMapping.filter(m => m.hasImages).map(m => `• ${m.name}: ${m.imageRange}`).join("\n")}
+※ 위 이미지들을 참조하여 캐릭터 외모를 정확히 일치시켜 주세요.
+` : "";
+
     return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
          🎭 등장인물 정보 (최우선 준수 사항) 🎭
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${protagonistWarning}
 ${characterDescriptions.join("\n\n")}
-
+${imageRefGuide}
 ⚠️ 캐릭터 일관성 필수 지침:
 1. 모든 장면에서 위 캐릭터들의 외모, 의상, 특징이 정확히 동일해야 합니다.
-2. 각 프레임 프롬프트에 캐릭터의 외모 특징(머리색, 피부톤, 체형, 성별, 나이)을 반드시 포함하세요.
-3. 캐릭터 이름은 프롬프트에 언급하지 말고, 외모 특징으로만 묘사하세요.
+2. 각 프레임 프롬프트에 캐릭터 이름과 외모 특징(머리색, 피부톤, 체형, 성별, 나이)을 반드시 포함하세요.
+3. 캐릭터 이름을 프롬프트에 포함하고, 참조 이미지 번호도 함께 언급하세요 (예: "철수(Image 1) walks into the room").
 4. 의상은 모든 장면에서 동일하게 유지하세요 (스토리상 변경이 없다면).
 5. 주인공 정보와 다른 성별/나이/외모의 캐릭터를 임의로 생성하지 마세요.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2016,15 +2057,46 @@ JSON 형식으로 응답해주세요:
         const aspectRatio = formatConfig?.aspectRatio || "16:9";
 
         // 참조 이미지 구성: Nano Banana Pro용 구조화된 순서
-        // 1번째~N번째: 캐릭터 참조 이미지 (캐릭터 외모)
+        // 1번째~N번째: 캐릭터 참조 이미지 (캐릭터 외모) - 캐릭터별로 순차 배치
         // N+1~M번째: 스타일 참조 이미지 (느낌/분위기)
         // M+1~끝: 이전 장면 이미지 (일관성 유지)
         const getConsistencyReferences = (additionalImages: string[] = [], sceneIndex: number = 0) => {
-          // 1. 캐릭터 이미지 (외모 참조용 - 가장 중요, 맨 앞에 배치)
-          const charImages = [
-            ...characterUploadedImages.slice(0, 4), // 업로드 이미지 최대 4개
-            ...characterGeneratedImages.slice(0, 2), // 생성 이미지 최대 2개
-          ];
+          // 1. 캐릭터 이미지 (외모 참조용 - 캐릭터별로 순차 수집)
+          const charImagesWithMapping: { url: string; charName: string }[] = [];
+          const characterMapping: { name: string; startIdx: number; endIdx: number }[] = [];
+          let currentIdx = 1;
+
+          selectedCharacters.forEach((char) => {
+            const startIdx = currentIdx;
+            // 업로드 이미지 (최대 2개)
+            const uploaded = (char.referenceImages || [])
+              .map(img => toAbsoluteUrl(img))
+              .filter((img): img is string => img !== null)
+              .slice(0, 2);
+            uploaded.forEach(url => {
+              charImagesWithMapping.push({ url, charName: char.name });
+            });
+
+            // 생성 이미지 (최대 1개)
+            const generated = (char.generatedImages || [])
+              .filter(img => img && (img.includes('replicate.delivery') || img.includes('replicate.com')))
+              .slice(0, 1);
+            generated.forEach(url => {
+              charImagesWithMapping.push({ url, charName: char.name });
+            });
+
+            const totalForChar = uploaded.length + generated.length;
+            if (totalForChar > 0) {
+              currentIdx += totalForChar;
+              characterMapping.push({
+                name: char.name,
+                startIdx,
+                endIdx: currentIdx - 1
+              });
+            }
+          });
+
+          const charImages = charImagesWithMapping.map(c => c.url).slice(0, 6); // 총 최대 6개
 
           // 2. 스타일 참조 이미지 (느낌/분위기 참조용)
           const styleImages = styleRefImages.slice(0, 3);
@@ -2043,8 +2115,12 @@ JSON 형식으로 응답해주세요:
             ...additional,
           ];
 
+          const charMappingLog = characterMapping.map(m =>
+            m.startIdx === m.endIdx ? `${m.name}: Image ${m.startIdx}` : `${m.name}: Image ${m.startIdx}-${m.endIdx}`
+          ).join(', ');
+
           console.log(`[참조이미지 구성] 장면 ${sceneIndex + 1}:
-  - Image 1~${charImages.length}: 캐릭터 이미지 ${charImages.length}개
+  - Image 1~${charImages.length}: 캐릭터 이미지 ${charImages.length}개 (${charMappingLog || '없음'})
   - Image ${charImages.length + 1}~${charImages.length + styleImages.length}: 스타일 참조 ${styleImages.length}개
   - Image ${charImages.length + styleImages.length + 1}~${charImages.length + styleImages.length + previousGenerated.length}: 이전 장면 ${previousGenerated.length}개
   - Image ${charImages.length + styleImages.length + previousGenerated.length + 1}~끝: 추가 이미지 ${additional.length}개`);
@@ -2061,16 +2137,30 @@ JSON 형식으로 응답해주세요:
             images: result,
             charCount: charImages.length,
             styleCount: styleImages.length,
-            prevCount: previousGenerated.length
+            prevCount: previousGenerated.length,
+            characterMapping // 캐릭터별 이미지 번호 매핑 정보
           };
         };
 
-        // Nano Banana Pro용 이미지 참조 프롬프트 생성 함수
-        const buildImageRefPrompt = (refInfo: { charCount: number; styleCount: number; prevCount: number }) => {
+        // Nano Banana Pro용 이미지 참조 프롬프트 생성 함수 (캐릭터 이름 포함)
+        const buildImageRefPrompt = (refInfo: {
+          charCount: number;
+          styleCount: number;
+          prevCount: number;
+          characterMapping?: { name: string; startIdx: number; endIdx: number }[]
+        }) => {
           const parts: string[] = [];
           let idx = 1;
 
-          if (refInfo.charCount > 0) {
+          if (refInfo.charCount > 0 && refInfo.characterMapping && refInfo.characterMapping.length > 0) {
+            // 캐릭터별로 이미지 번호와 이름을 명시
+            const charParts = refInfo.characterMapping.map(m => {
+              const range = m.startIdx === m.endIdx ? `Image ${m.startIdx}` : `Image ${m.startIdx}-${m.endIdx}`;
+              return `${range}=${m.name}`;
+            });
+            parts.push(`Character references: ${charParts.join(', ')} - preserve exact facial features and appearance for each character`);
+            idx = refInfo.charCount + 1;
+          } else if (refInfo.charCount > 0) {
             const charEnd = idx + refInfo.charCount - 1;
             parts.push(`Using Image ${idx}${refInfo.charCount > 1 ? `-${charEnd}` : ''} (character reference - preserve exact facial features and appearance)`);
             idx = charEnd + 1;
