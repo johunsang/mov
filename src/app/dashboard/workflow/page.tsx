@@ -72,6 +72,8 @@ interface ImagePrompt {
   dialogue1?: string; // 시작 프레임 대사
   dialogue2?: string; // 중간 프레임 대사
   dialogue3?: string; // 끝 프레임 대사
+  // 장면별 참조 이미지 (image_input)
+  referenceImages?: string[];
 }
 
 interface GeneratedImages {
@@ -2060,6 +2062,28 @@ JSON 형식으로 응답해주세요:
         // N+1~M번째: 스타일 참조 이미지 (느낌/분위기)
         // M+1~끝: 이전 장면 이미지 (일관성 유지)
         const getConsistencyReferences = (additionalImages: string[] = [], sceneIndex: number = 0) => {
+          // 0. 장면별 참조 이미지가 설정되어 있으면 우선 사용
+          const sceneReferenceImages = imagePrompts[sceneIndex]?.referenceImages || [];
+          if (sceneReferenceImages.length > 0) {
+            const sceneRefs = sceneReferenceImages
+              .map(img => toAbsoluteUrl(img))
+              .filter((img): img is string => img !== null);
+
+            // 추가 이미지 (끝 프레임 생성 시 시작 프레임)
+            const additional = additionalImages.slice(0, 2);
+
+            const allRefs = [...sceneRefs, ...additional]
+              .filter((v, i, a) => a.indexOf(v) === i)
+              .slice(0, 14);
+
+            console.log(`[getConsistencyReferences] 장면 ${sceneIndex + 1}: 장면별 참조 이미지 ${sceneRefs.length}개 사용`);
+
+            return {
+              images: allRefs,
+              characterMapping: [],
+            };
+          }
+
           // 1. 캐릭터 이미지 (외모 참조용 - 캐릭터별로 순차 수집, 모드에 따라 처리)
           const charImagesWithMapping: { url: string; charName: string; mode: string }[] = [];
           const characterMapping: { name: string; startIdx: number; endIdx: number; mode: string }[] = [];
@@ -4883,6 +4907,155 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                     </div>
                   </div>
                 )}
+
+                {/* 장면별 참조 이미지 (image_input) */}
+                <div className="mt-4 p-4 bg-green-900/20 border border-green-700/50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-green-400" />
+                      <span className="text-sm font-medium text-green-400">참조 이미지</span>
+                      <span className="text-xs text-green-600">이 장면에 사용할 참조 이미지 (최대 14개)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* 캐릭터 이미지 자동 추가 버튼 */}
+                      {selectedCharacters.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const charImages: string[] = [];
+                            selectedCharacters.forEach((char) => {
+                              if (char.referenceImages) charImages.push(...char.referenceImages);
+                              if (char.generatedImages) charImages.push(...char.generatedImages.filter(img => img && (img.includes('replicate.delivery') || img.includes('replicate.com'))));
+                            });
+                            if (charImages.length > 0) {
+                              const existing = scene.referenceImages || [];
+                              const merged = [...existing, ...charImages].filter((v, i, a) => a.indexOf(v) === i).slice(0, 14);
+                              const updated = [...imagePrompts];
+                              updated[sceneIndex] = { ...updated[sceneIndex], referenceImages: merged };
+                              setImagePrompts(updated);
+                            }
+                          }}
+                          className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 px-2 py-1 rounded bg-green-600/20"
+                        >
+                          <Users className="w-3 h-3" />
+                          캐릭터 이미지 추가
+                        </button>
+                      )}
+                      {/* 이미지 URL 입력 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = prompt('참조 이미지 URL을 입력하세요:');
+                          if (url && url.startsWith('http')) {
+                            const existing = scene.referenceImages || [];
+                            if (existing.length < 14) {
+                              const updated = [...imagePrompts];
+                              updated[sceneIndex] = { ...updated[sceneIndex], referenceImages: [...existing, url] };
+                              setImagePrompts(updated);
+                            }
+                          }
+                        }}
+                        className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 px-2 py-1 rounded bg-green-600/20"
+                      >
+                        <Plus className="w-3 h-3" />
+                        URL 추가
+                      </button>
+                      {/* 파일 업로드 */}
+                      <label className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 px-2 py-1 rounded bg-green-600/20 cursor-pointer">
+                        <Upload className="w-3 h-3" />
+                        업로드
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={async (e) => {
+                            const files = e.target.files;
+                            if (!files || files.length === 0) return;
+                            const existing = scene.referenceImages || [];
+                            const maxToAdd = 14 - existing.length;
+                            if (maxToAdd <= 0) {
+                              alert('최대 14개의 참조 이미지만 추가할 수 있습니다.');
+                              return;
+                            }
+                            const filesToUpload = Array.from(files).slice(0, maxToAdd);
+                            const uploadedUrls: string[] = [];
+                            for (const file of filesToUpload) {
+                              try {
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                                const data = await res.json();
+                                if (data.url) uploadedUrls.push(data.url);
+                              } catch (err) {
+                                console.error('Upload error:', err);
+                              }
+                            }
+                            if (uploadedUrls.length > 0) {
+                              const updated = [...imagePrompts];
+                              updated[sceneIndex] = { ...updated[sceneIndex], referenceImages: [...existing, ...uploadedUrls] };
+                              setImagePrompts(updated);
+                            }
+                          }}
+                        />
+                      </label>
+                      {/* 전체 삭제 */}
+                      {(scene.referenceImages?.length || 0) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('이 장면의 모든 참조 이미지를 삭제하시겠습니까?')) {
+                              const updated = [...imagePrompts];
+                              updated[sceneIndex] = { ...updated[sceneIndex], referenceImages: [] };
+                              setImagePrompts(updated);
+                            }
+                          }}
+                          className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 px-2 py-1 rounded bg-red-600/20"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          전체 삭제
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {/* 참조 이미지 목록 */}
+                  {(scene.referenceImages?.length || 0) > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {scene.referenceImages?.map((img, imgIdx) => (
+                        <div key={imgIdx} className="relative group">
+                          <img
+                            src={img.startsWith('http') ? img : `https://mov.hwasubun.ai${img.startsWith('/api') ? img : img.replace('/uploads/', '/api/uploads/')}`}
+                            alt={`참조 이미지 ${imgIdx + 1}`}
+                            className="w-16 h-16 object-cover rounded border border-green-700/50"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...imagePrompts];
+                              const newRefs = [...(scene.referenceImages || [])];
+                              newRefs.splice(imgIdx, 1);
+                              updated[sceneIndex] = { ...updated[sceneIndex], referenceImages: newRefs };
+                              setImagePrompts(updated);
+                            }}
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                          <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-center text-white py-0.5">
+                            {imgIdx + 1}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-zinc-500 text-sm">
+                      참조 이미지가 없습니다. 위 버튼으로 이미지를 추가하세요.
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
 
