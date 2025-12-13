@@ -2080,6 +2080,9 @@ JSON 형식으로 응답해주세요:
 
             return {
               images: allRefs,
+              charCount: sceneRefs.length,
+              styleCount: 0,
+              prevCount: additional.length,
               characterMapping: [],
             };
           }
