@@ -17,17 +17,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "알 수 없는 모델입니다" }, { status: 400 });
     }
 
+    // 글자/말풍선 금지 지시 추가
+    const noTextInstruction = ". No text, no speech bubbles, no captions, no letters, no watermarks.";
+    const enhancedPrompt = prompt ? `${prompt}${noTextInstruction}` : `Video animation${noTextInstruction}`;
+
     let input: Record<string, unknown> = {};
 
     if (model === "kling-i2v") {
       input = {
         image: imageUrl,
-        prompt: prompt || "",
+        prompt: enhancedPrompt,
         duration,
       };
     } else if (model === "veo-i2v") {
       input = {
-        prompt,
+        prompt: enhancedPrompt,
         reference_images: [imageUrl],
       };
     }

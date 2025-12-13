@@ -2200,7 +2200,10 @@ JSON 형식으로 응답해주세요:
             parts.push(`Style: ${styleReferenceText}`);
           }
 
-          return parts.length > 0 ? parts.join(', ') + '. ' : '';
+          // 글자/말풍선 금지 지시 추가
+          parts.push('No text, no speech bubbles, no captions, no letters, no watermarks');
+
+          return parts.join(', ') + '. ';
         };
 
         // 1. 시작 프레임 생성 (재시도 로직 포함)

@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "알 수 없는 모델입니다" }, { status: 400 });
     }
 
-    const input: Record<string, unknown> = { prompt };
+    // 글자/말풍선 금지 지시 추가
+    const enhancedPrompt = `${prompt}. No text, no speech bubbles, no captions, no letters, no watermarks.`;
+    const input: Record<string, unknown> = { prompt: enhancedPrompt };
 
     if (modelConfig.supportsReferenceImages && referenceImages.length > 0) {
       input.reference_images = referenceImages;
