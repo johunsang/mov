@@ -2087,8 +2087,8 @@ JSON 형식으로 응답해주세요:
         // N+1~M번째: 스타일 참조 이미지 (느낌/분위기)
         // M+1~끝: 이전 장면 이미지 (일관성 유지)
         const getConsistencyReferences = (additionalImages: string[] = [], sceneIndex: number = 0) => {
-          // 0. 장면별 참조 이미지가 설정되어 있으면 우선 사용
-          const sceneReferenceImages = imagePrompts[sceneIndex]?.referenceImages || [];
+          // 0. 장면별 참조 이미지가 설정되어 있으면 우선 사용 (updatedImagePrompts 사용!)
+          const sceneReferenceImages = updatedImagePrompts[sceneIndex]?.referenceImages || [];
           if (sceneReferenceImages.length > 0) {
             const sceneRefs = sceneReferenceImages
               .map(img => toAbsoluteUrl(img))
