@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
               console.log("[API Image] href 속성에서 URL 추출:", obj.href.substring(0, 50));
               return obj.href;
             }
-          } catch (e) {
+          } catch {
             // href 접근 실패
           }
 
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
               console.log("[API Image] url 속성에서 URL 추출");
               return obj.url;
             }
-          } catch (e) {
+          } catch {
             // url 접근 실패
           }
 
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
               console.log("[API Image] toString에서 URL 추출");
               return str;
             }
-          } catch (e) {
+          } catch {
             // toString 실패
           }
         }
