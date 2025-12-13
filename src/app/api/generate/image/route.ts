@@ -91,48 +91,51 @@ export async function POST(request: NextRequest) {
 
     const output = await replicate.run(modelConfig.id as `${string}/${string}`, { input: baseInput });
 
-    console.log("[API Image] Replicate 응답 타입:", typeof output, Array.isArray(output) ? "array" : "");
+    console.log("[API Image] Replicate 응답 타입:", typeof output, Array.isArray(output) ? "array" : "", output?.constructor?.name);
 
-    // Replicate API 응답 형식 처리
+    // Replicate API 응답 형식 처리 - URL 객체 또는 문자열 처리
     let url: string = "";
 
     try {
-      if (Array.isArray(output)) {
-        const first = output[0];
-        if (first && typeof first === 'object') {
-          // FileOutput 객체 처리
-          if ('href' in first) {
-            const hrefValue = (first as { href: unknown }).href;
-            url = typeof hrefValue === 'function' ? hrefValue() : String(hrefValue);
-          } else if ('url' in first) {
-            const urlValue = (first as { url: unknown }).url;
-            url = typeof urlValue === 'function' ? urlValue() : String(urlValue);
-          } else {
-            url = String(first);
+      // URL 객체에서 href 추출하는 헬퍼 함수
+      const extractUrl = (item: unknown): string => {
+        if (!item) return "";
+
+        // 이미 문자열인 경우
+        if (typeof item === 'string') return item;
+
+        // URL 객체인 경우 (native URL)
+        if (item instanceof URL) return item.href;
+
+        // 객체인 경우
+        if (typeof item === 'object') {
+          const obj = item as Record<string, unknown>;
+          // href 속성이 있는 경우 (URL 객체 또는 유사 객체)
+          if ('href' in obj && typeof obj.href === 'string') return obj.href;
+          // url 속성이 있는 경우
+          if ('url' in obj) {
+            if (typeof obj.url === 'function') return obj.url();
+            if (typeof obj.url === 'string') return obj.url;
           }
-        } else if (first) {
-          url = String(first);
+          // toString이 유용한 결과를 반환하는 경우
+          const str = String(item);
+          if (str.startsWith('http')) return str;
         }
-      } else if (typeof output === "object" && output !== null) {
-        // FileOutput 객체 처리
-        if ('href' in output) {
-          const hrefValue = (output as { href: unknown }).href;
-          url = typeof hrefValue === 'function' ? hrefValue() : String(hrefValue);
-        } else if ('url' in output) {
-          const urlValue = (output as { url: unknown }).url;
-          url = typeof urlValue === 'function' ? urlValue() : String(urlValue);
-        } else {
-          url = String(output);
-        }
-      } else if (output) {
-        url = String(output);
+
+        return "";
+      };
+
+      if (Array.isArray(output)) {
+        url = extractUrl(output[0]);
+      } else {
+        url = extractUrl(output);
       }
     } catch (parseError) {
       console.error("[API Image] 응답 파싱 오류:", parseError);
       url = "";
     }
 
-    // URL이 유효한지 확인 - 타입 체크 추가
+    // URL이 유효한지 확인
     if (!url || typeof url !== 'string' || !url.startsWith('http')) {
       console.error("[API Image] Invalid URL returned:", url, "type:", typeof url);
       return NextResponse.json(
