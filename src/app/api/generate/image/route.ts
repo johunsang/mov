@@ -104,19 +104,27 @@ export async function POST(request: NextRequest) {
         // 이미 문자열인 경우
         if (typeof item === 'string') return item;
 
-        // URL 객체인 경우 (native URL)
-        if (item instanceof URL) return item.href;
-
         // 객체인 경우
         if (typeof item === 'object') {
           const obj = item as Record<string, unknown>;
-          // href 속성이 있는 경우 (URL 객체 또는 유사 객체)
-          if ('href' in obj && typeof obj.href === 'string') return obj.href;
+
+          // URL 객체 구조 감지 (href, origin, protocol, hostname 속성이 있으면 URL 객체)
+          if ('href' in obj && 'origin' in obj && 'protocol' in obj && 'hostname' in obj) {
+            console.log("[API Image] URL 객체 감지됨, href 추출");
+            return String(obj.href);
+          }
+
+          // href 속성만 있는 경우
+          if ('href' in obj && typeof obj.href === 'string') {
+            return obj.href;
+          }
+
           // url 속성이 있는 경우
           if ('url' in obj) {
             if (typeof obj.url === 'function') return obj.url();
             if (typeof obj.url === 'string') return obj.url;
           }
+
           // toString이 유용한 결과를 반환하는 경우
           const str = String(item);
           if (str.startsWith('http')) return str;
