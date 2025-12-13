@@ -235,11 +235,16 @@ export default function CharactersPage() {
     setGenerating(true);
 
     try {
-      // 캐릭터 정보로 프롬프트 생성 (영문으로 변환하여 더 좋은 결과)
-      const characterPrompt = `High quality character portrait, ${formData.gender || ""} ${formData.age || ""}, ${formData.appearance}. ${formData.clothing ? `Outfit: ${formData.clothing}` : ""} ${formData.personality ? `Mood: ${formData.personality}` : ""} Consistent character appearance, detailed face, professional illustration style.`.trim();
-
       // 참조 이미지가 있으면 함께 전송
       const referenceImages = [...formData.referenceImages, ...formData.generatedImages];
+
+      // 캐릭터 정보로 프롬프트 생성 (참조 이미지가 있으면 해당 인물을 사용하도록 지시)
+      const hasReferenceImages = referenceImages.length > 0;
+      const referenceInstruction = hasReferenceImages
+        ? "Generate an image of the exact same person shown in the reference images. Maintain the same face, facial features, and identity. "
+        : "";
+
+      const characterPrompt = `${referenceInstruction}High quality character portrait, ${formData.gender || ""} ${formData.age || ""}, ${formData.appearance}. ${formData.clothing ? `Outfit: ${formData.clothing}` : ""} ${formData.personality ? `Mood: ${formData.personality}` : ""} Consistent character appearance, detailed face, professional illustration style.`.trim();
 
       const res = await fetch("/api/generate/image", {
         method: "POST",
