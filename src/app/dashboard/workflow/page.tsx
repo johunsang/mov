@@ -30,6 +30,7 @@ import {
   MessageCircle,
   Mic,
   Waves,
+  Upload,
 } from "lucide-react";
 import { IMAGE_MODELS, TEXT_MODELS, IMAGE_TO_VIDEO_MODELS, USD_TO_KRW, ImageModelKey, TextModelKey, ImageToVideoModelKey } from "@/lib/models";
 import {
@@ -155,6 +156,8 @@ interface TopicHistory {
   imageSeeds?: number[][]; // 각 장면별 이미지 시드 배열
   imagePrompts?: ImagePrompt[]; // 저장된 이미지 프롬프트
   audioOptions?: AudioOptions; // 오디오 옵션
+  styleReferenceImages?: string[]; // 스타일 참조 이미지 (느낌 이미지)
+  styleReferenceText?: string; // 스타일 참조 텍스트 설명
 }
 
 interface StyleOption {
@@ -268,6 +271,11 @@ export default function WorkflowPage() {
   const [customMood, setCustomMood] = useState("");
   const [showCustomGenreInput, setShowCustomGenreInput] = useState(false);
   const [showCustomMoodInput, setShowCustomMoodInput] = useState(false);
+
+  // 스타일 참조 이미지 (느낌 이미지)
+  const [styleReferenceImages, setStyleReferenceImages] = useState<string[]>([]);
+  const [styleReferenceText, setStyleReferenceText] = useState(""); // 텍스트로 스타일 설명
+  const [isUploadingStyleRef, setIsUploadingStyleRef] = useState(false);
 
   // 장면별 설정 편집 모달
   const [editingSceneSettings, setEditingSceneSettings] = useState<number | null>(null);
@@ -1966,9 +1974,15 @@ JSON 형식으로 응답해주세요:
       ...characterUploadedImages,
     ].filter((v, i, a) => a.indexOf(v) === i); // 중복 제거
 
+    // 스타일 참조 이미지 (느낌 이미지) - 절대 URL로 변환
+    const styleRefImages: string[] = styleReferenceImages
+      .map(img => toAbsoluteUrl(img))
+      .filter((img): img is string => img !== null);
+
     console.log(`[참조이미지] 캐릭터 생성 이미지: ${characterGeneratedImages.length}개`, characterGeneratedImages);
     console.log(`[참조이미지] 캐릭터 업로드 이미지: ${characterUploadedImages.length}개`, characterUploadedImages);
     console.log(`[참조이미지] 총 캐릭터 참조 이미지: ${characterReferenceImages.length}개`);
+    console.log(`[참조이미지] 스타일 참조 이미지: ${styleRefImages.length}개`, styleRefImages);
 
     // allImages 배열은 히스토리 저장용으로 사용
     const allImages: { id: number; images: string[]; seeds: number[] }[] = [];
@@ -1988,41 +2002,39 @@ JSON 형식으로 응답해주세요:
         const formatConfig = VIDEO_FORMATS.find(f => f.id === styleOptions.format);
         const aspectRatio = formatConfig?.aspectRatio || "16:9";
 
-        // 참조 이미지 구성: 캐릭터 참조 + 이전 장면들의 이미지 (일관성 유지)
-        // 첫 장면: 캐릭터 업로드 이미지 사용, 이후 장면: 생성된 이미지 참조
+        // 참조 이미지 구성: Nano Banana Pro용 구조화된 순서
+        // 1번째~N번째: 캐릭터 참조 이미지 (캐릭터 외모)
+        // N+1~M번째: 스타일 참조 이미지 (느낌/분위기)
+        // M+1~끝: 이전 장면 이미지 (일관성 유지)
         const getConsistencyReferences = (additionalImages: string[] = [], sceneIndex: number = 0) => {
-          // 1. 캐릭터 업로드 이미지 (서버 URL - 캐릭터 외모 기준)
-          const charUploaded = characterUploadedImages.slice(0, 6);
+          // 1. 캐릭터 이미지 (외모 참조용 - 가장 중요, 맨 앞에 배치)
+          const charImages = [
+            ...characterUploadedImages.slice(0, 4), // 업로드 이미지 최대 4개
+            ...characterGeneratedImages.slice(0, 2), // 생성 이미지 최대 2개
+          ];
 
-          // 2. 캐릭터 생성 이미지 (Replicate URL - 있다면 사용)
-          const charGenerated = characterGeneratedImages.slice(0, 4);
+          // 2. 스타일 참조 이미지 (느낌/분위기 참조용)
+          const styleImages = styleRefImages.slice(0, 3);
 
           // 3. 이전 생성된 이미지 (일관성 유지용)
-          const previousGenerated = previousGeneratedImages.slice(-6);
+          const previousGenerated = previousGeneratedImages.slice(-4);
 
-          // 4. 현재 장면의 추가 이미지 (시작 프레임 등)
-          const additional = additionalImages;
+          // 4. 현재 장면의 추가 이미지 (시작 프레임 - 끝 프레임 생성 시)
+          const additional = additionalImages.slice(0, 2);
 
-          let refs: string[] = [];
+          // 순서대로 구성: 캐릭터 → 스타일 → 이전 장면 → 추가
+          let refs: string[] = [
+            ...charImages,
+            ...styleImages,
+            ...previousGenerated,
+            ...additional,
+          ];
 
-          if (sceneIndex === 0 && previousGeneratedImages.length === 0) {
-            // 첫 장면: 캐릭터 이미지만 사용 (캐릭터 외모 기준 설정)
-            refs = [
-              ...charUploaded,
-              ...charGenerated,
-              ...additional,
-            ];
-            console.log(`[참조이미지] 첫 장면 - 캐릭터 이미지 우선: 업로드 ${charUploaded.length}개, 생성 ${charGenerated.length}개`);
-          } else {
-            // 이후 장면: 이전 생성 이미지 + 캐릭터 이미지 (일관성 유지)
-            refs = [
-              ...charUploaded.slice(0, 2), // 캐릭터 참조 일부 유지
-              ...charGenerated.slice(0, 2),
-              ...additional, // 현재 장면 이미지
-              ...previousGenerated, // 이전 생성 이미지
-            ];
-            console.log(`[참조이미지] ${sceneIndex + 1}번째 장면 - 이전 이미지 참조: 캐릭터 ${charUploaded.slice(0, 2).length + charGenerated.slice(0, 2).length}개, 이전 ${previousGenerated.length}개, 추가 ${additional.length}개`);
-          }
+          console.log(`[참조이미지 구성] 장면 ${sceneIndex + 1}:
+  - Image 1~${charImages.length}: 캐릭터 이미지 ${charImages.length}개
+  - Image ${charImages.length + 1}~${charImages.length + styleImages.length}: 스타일 참조 ${styleImages.length}개
+  - Image ${charImages.length + styleImages.length + 1}~${charImages.length + styleImages.length + previousGenerated.length}: 이전 장면 ${previousGenerated.length}개
+  - Image ${charImages.length + styleImages.length + previousGenerated.length + 1}~끝: 추가 이미지 ${additional.length}개`);
 
           // 중복 제거 및 유효한 URL만 필터
           const uniqueRefs = [...new Set(refs)].filter(
@@ -2032,24 +2044,57 @@ JSON 형식으로 응답해주세요:
           const result = uniqueRefs.slice(0, 14);
           console.log(`[참조이미지] 최종 결과: ${result.length}개`, result.map(url => url.substring(0, 60)));
 
-          return result;
+          return {
+            images: result,
+            charCount: charImages.length,
+            styleCount: styleImages.length,
+            prevCount: previousGenerated.length
+          };
+        };
+
+        // Nano Banana Pro용 이미지 참조 프롬프트 생성 함수
+        const buildImageRefPrompt = (refInfo: { charCount: number; styleCount: number; prevCount: number }) => {
+          const parts: string[] = [];
+          let idx = 1;
+
+          if (refInfo.charCount > 0) {
+            const charEnd = idx + refInfo.charCount - 1;
+            parts.push(`Using Image ${idx}${refInfo.charCount > 1 ? `-${charEnd}` : ''} (character reference - preserve exact facial features and appearance)`);
+            idx = charEnd + 1;
+          }
+
+          if (refInfo.styleCount > 0) {
+            const styleEnd = idx + refInfo.styleCount - 1;
+            parts.push(`Image ${idx}${refInfo.styleCount > 1 ? `-${styleEnd}` : ''} (style reference - match visual style, mood, and color tone)`);
+            idx = styleEnd + 1;
+          }
+
+          // 스타일 참조 텍스트가 있으면 추가
+          if (styleReferenceText) {
+            parts.push(`Style: ${styleReferenceText}`);
+          }
+
+          return parts.length > 0 ? parts.join(', ') + '. ' : '';
         };
 
         // 1. 시작 프레임 생성 (재시도 로직 포함)
         if (scene.prompt1) {
+          const refInfo = getConsistencyReferences([], i);
+          const imageRefPrompt = buildImageRefPrompt(refInfo);
           const promptWithDialogue = addDialogueToPrompt(scene.prompt1, scene.dialogue1);
-          const refImages = getConsistencyReferences([], i);
+          const enhancedPrompt = imageRefPrompt + promptWithDialogue;
           const frameLabel = `장면 ${i + 1} 시작 프레임`;
 
-          console.log(`${frameLabel}: 참조 이미지 ${refImages.length}개 사용`);
+          console.log(`${frameLabel}: 참조 이미지 ${refInfo.images.length}개 사용`);
+          console.log(`${frameLabel} 프롬프트 (참조 정보 포함):`, enhancedPrompt.substring(0, 200) + '...');
           setLoadingStep(`${frameLabel} 생성 중...`);
 
           const result1 = await generateImageWithRetry({
             apiKey,
             model: imageModel,
-            prompt: promptWithDialogue,
+            prompt: enhancedPrompt,
             aspectRatio,
-            referenceImages: refImages.length > 0 ? refImages : undefined,
+            referenceImages: refInfo.images.length > 0 ? refInfo.images : undefined,
           }, 5, frameLabel);
 
           if (result1.success && result1.url) {
@@ -2065,19 +2110,22 @@ JSON 형식으로 응답해주세요:
 
         // 2. 끝 프레임 생성 (시작 프레임도 참조에 추가, 재시도 로직 포함)
         if (scene.prompt2) {
+          const refInfo = getConsistencyReferences(sceneImages, i);
+          const imageRefPrompt = buildImageRefPrompt(refInfo);
           const promptWithDialogue = addDialogueToPrompt(scene.prompt2, scene.dialogue2);
-          const refImages = getConsistencyReferences(sceneImages, i);
+          const enhancedPrompt = imageRefPrompt + promptWithDialogue;
           const frameLabel = `장면 ${i + 1} 끝 프레임`;
 
-          console.log(`${frameLabel}: 참조 이미지 ${refImages.length}개 사용`);
+          console.log(`${frameLabel}: 참조 이미지 ${refInfo.images.length}개 사용`);
+          console.log(`${frameLabel} 프롬프트 (참조 정보 포함):`, enhancedPrompt.substring(0, 200) + '...');
           setLoadingStep(`${frameLabel} 생성 중...`);
 
           const result2 = await generateImageWithRetry({
             apiKey,
             model: imageModel,
-            prompt: promptWithDialogue,
+            prompt: enhancedPrompt,
             aspectRatio,
-            referenceImages: refImages.length > 0 ? refImages : undefined
+            referenceImages: refInfo.images.length > 0 ? refInfo.images : undefined
           }, 5, frameLabel);
 
           if (result2.success && result2.url) {
@@ -3463,6 +3511,122 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                               />
                             ))}
                           </div>
+                        </div>
+
+                        {/* 스타일 참조 이미지 섹션 */}
+                        <div className="border-t border-zinc-700 pt-4 mt-4">
+                          <label className="block text-sm text-zinc-400 mb-2">
+                            <span className="flex items-center gap-2">
+                              <ImageIcon className="w-4 h-4" />
+                              스타일 참조 이미지 (느낌 이미지)
+                            </span>
+                          </label>
+                          <p className="text-xs text-zinc-500 mb-3">
+                            원하는 느낌의 이미지를 업로드하면, 생성되는 이미지가 해당 스타일을 참조합니다.
+                          </p>
+
+                          <div className="space-y-3">
+                            {/* 업로드된 이미지 미리보기 */}
+                            {styleReferenceImages.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {styleReferenceImages.map((img, idx) => (
+                                  <div key={idx} className="relative group">
+                                    <img
+                                      src={img}
+                                      alt={`스타일 참조 ${idx + 1}`}
+                                      className="w-20 h-20 object-cover rounded-lg border border-zinc-600"
+                                    />
+                                    <button
+                                      onClick={() => setStyleReferenceImages(styleReferenceImages.filter((_, i) => i !== idx))}
+                                      className="absolute -top-1 -right-1 p-1 bg-red-600 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* 업로드 버튼 */}
+                            <div className="flex gap-2">
+                              <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                isUploadingStyleRef
+                                  ? "bg-zinc-700 text-zinc-400 cursor-not-allowed"
+                                  : "bg-purple-600/20 hover:bg-purple-600/40 text-purple-400"
+                              }`}>
+                                {isUploadingStyleRef ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4" />
+                                )}
+                                <span className="text-sm">
+                                  {isUploadingStyleRef ? "업로드 중..." : "이미지 업로드"}
+                                </span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  disabled={isUploadingStyleRef}
+                                  onChange={async (e) => {
+                                    const files = e.target.files;
+                                    if (!files || files.length === 0) return;
+
+                                    setIsUploadingStyleRef(true);
+                                    try {
+                                      const newImages: string[] = [];
+                                      for (const file of Array.from(files)) {
+                                        const formData = new FormData();
+                                        formData.append("file", file);
+
+                                        const res = await fetch("/api/upload", {
+                                          method: "POST",
+                                          body: formData,
+                                        });
+
+                                        if (res.ok) {
+                                          const data = await res.json();
+                                          newImages.push(data.url);
+                                        }
+                                      }
+                                      setStyleReferenceImages([...styleReferenceImages, ...newImages].slice(0, 5));
+                                    } catch (error) {
+                                      console.error("스타일 참조 이미지 업로드 실패:", error);
+                                    } finally {
+                                      setIsUploadingStyleRef(false);
+                                      e.target.value = "";
+                                    }
+                                  }}
+                                />
+                              </label>
+                              {styleReferenceImages.length > 0 && (
+                                <button
+                                  onClick={() => setStyleReferenceImages([])}
+                                  className="px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-600/20 rounded-lg transition-colors"
+                                >
+                                  전체 삭제
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-xs text-zinc-600">최대 5개까지 업로드 가능</p>
+                          </div>
+                        </div>
+
+                        {/* 스타일 설명 텍스트 */}
+                        <div className="border-t border-zinc-700 pt-4 mt-4">
+                          <label className="block text-sm text-zinc-400 mb-2">
+                            스타일 설명 (텍스트)
+                          </label>
+                          <p className="text-xs text-zinc-500 mb-2">
+                            원하는 스타일을 텍스트로 직접 설명할 수 있습니다. (예: &quot;지브리 애니메이션 느낌&quot;, &quot;영화 매트릭스 같은 녹색 톤&quot;)
+                          </p>
+                          <textarea
+                            value={styleReferenceText}
+                            onChange={(e) => setStyleReferenceText(e.target.value)}
+                            placeholder="예: 지브리 스튜디오 애니메이션 스타일, 따뜻한 색감, 부드러운 질감..."
+                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-purple-500"
+                            rows={2}
+                          />
                         </div>
                       </div>
                     )}
