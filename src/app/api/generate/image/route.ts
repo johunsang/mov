@@ -64,13 +64,13 @@ export async function POST(request: NextRequest) {
           }
 
           // 로컬 경로인 경우 공개 URL로 변환
-          // /api/uploads/userId/filename -> https://mov.hwasubun.ai/uploads/userId/filename
-          // /uploads/userId/filename -> https://mov.hwasubun.ai/uploads/userId/filename
+          // /api/uploads/userId/filename -> https://mov.hwasubun.ai/api/uploads/userId/filename
+          // /uploads/userId/filename -> https://mov.hwasubun.ai/api/uploads/userId/filename
           if (img.includes('/uploads/')) {
             let publicPath = img;
-            // /api/uploads/ -> /uploads/
-            if (img.includes('/api/uploads/')) {
-              publicPath = img.replace('/api/uploads/', '/uploads/');
+            // /uploads/ -> /api/uploads/ (API 라우트를 통해 제공됨)
+            if (!img.includes('/api/uploads/')) {
+              publicPath = img.replace('/uploads/', '/api/uploads/');
             }
             // 상대 경로를 절대 URL로 변환
             if (publicPath.startsWith('/')) {
