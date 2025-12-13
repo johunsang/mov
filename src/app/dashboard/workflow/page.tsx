@@ -284,6 +284,8 @@ export default function WorkflowPage() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCharacters, setSelectedCharacters] = useState<Character[]>([]);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
+  // 캐릭터별 이미지 모드: "attached" (첨부 사용) | "ai_reference" (AI 참조) | "ai_create" (새로 생성)
+  const [characterImageModes, setCharacterImageModes] = useState<Record<string, "attached" | "ai_reference" | "ai_create">>({});
 
   // 사용자 스타일 프리셋 관련 상태
   const [userPresets, setUserPresets] = useState<UserStylePreset[]>([]);
@@ -1547,12 +1549,11 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
     return { success: false, error: lastError };
   };
 
-  // 캐릭터 정보 프롬프트 생성 함수
+  // 캐릭터 정보 프롬프트 생성 함수 - 이미지 기반
   const generateCharacterPrompt = (): string => {
     if (selectedCharacters.length === 0) return "";
 
     // 캐릭터별 참조 이미지 번호 매핑 계산
-    // 순서: 업로드 이미지 (최대 4개) → 생성 이미지 (최대 2개)
     let imageIndex = 1;
     const characterImageMapping: { name: string; imageRange: string; hasImages: boolean }[] = [];
 
@@ -1581,64 +1582,36 @@ ${duration ? `• 목표 길이: ${duration.name} (${duration.seconds}초)
       }
     });
 
-    const characterDescriptions = selectedCharacters.map((char, idx) => {
-      const parts = [];
-      const roleLabel = char.role === "주인공" ? "★ 주인공" : char.role || "등장인물";
-      const mapping = characterImageMapping[idx];
-      const imageInfo = mapping.hasImages ? ` [참조: ${mapping.imageRange}]` : "";
-      parts.push(`━━━ 【${roleLabel}】 ${char.name}${imageInfo} ━━━`);
-      if (char.gender) parts.push(`• 성별: ${char.gender}`);
-      if (char.age) parts.push(`• 나이: ${char.age}`);
-      if (char.appearance) parts.push(`• 외모 (★반드시 준수★): ${char.appearance}`);
-      if (char.clothing) parts.push(`• 의상 (★반드시 준수★): ${char.clothing}`);
-      if (char.personality) parts.push(`• 성격/분위기: ${char.personality}`);
-      if (char.description) parts.push(`• 추가 설명: ${char.description}`);
-      return parts.join("\n");
-    });
+    // 이미지가 있는 캐릭터만 필터링
+    const charsWithImages = selectedCharacters.filter((_, idx) => characterImageMapping[idx].hasImages);
 
-    // 주인공 캐릭터 먼저 정렬
-    const sortedChars = selectedCharacters.sort((a, b) => {
-      if (a.role === "주인공") return -1;
-      if (b.role === "주인공") return 1;
-      return 0;
-    });
+    if (charsWithImages.length === 0) return "";
 
-    // 주인공이 있으면 특별 강조
-    const protagonist = sortedChars.find(c => c.role === "주인공");
-    const protagonistMapping = characterImageMapping.find(m => m.name === protagonist?.name);
-    const protagonistImageInfo = protagonistMapping?.hasImages ? ` (${protagonistMapping.imageRange} 참조)` : "";
-    const protagonistWarning = protagonist ? `
-🚨🚨🚨 절대 준수 사항 🚨🚨🚨
-이 영상의 주인공은 "${protagonist.name}"입니다${protagonistImageInfo}.
-- 성별: ${protagonist.gender || "미지정"}
-- 나이: ${protagonist.age || "미지정"}
-- 외모: ${protagonist.appearance || "미지정"}
-- 의상: ${protagonist.clothing || "미지정"}
+    // 캐릭터 이미지 참조 목록 생성
+    const characterList = charsWithImages.map((char) => {
+      const mapping = characterImageMapping[selectedCharacters.indexOf(char)];
+      const roleLabel = char.role === "주인공" ? "★주인공" : char.role || "등장인물";
+      return `• ${char.name} (${roleLabel}): ${mapping.imageRange}`;
+    }).join("\n");
 
-위 정보와 다른 캐릭터(예: 젊은 남자, 청년 등)를 절대 생성하지 마세요!
-모든 프레임에서 위 주인공의 외모를 정확히 묘사해야 합니다.
-` : "";
-
-    // 이미지 참조 안내 생성
-    const imageRefGuide = characterImageMapping.some(m => m.hasImages) ? `
-📷 참조 이미지 안내:
-${characterImageMapping.filter(m => m.hasImages).map(m => `• ${m.name}: ${m.imageRange}`).join("\n")}
-※ 위 이미지들을 참조하여 캐릭터 외모를 정확히 일치시켜 주세요.
-` : "";
+    // 주인공 찾기
+    const protagonist = charsWithImages.find(c => c.role === "주인공");
+    const protagonistMapping = protagonist ? characterImageMapping.find(m => m.name === protagonist.name) : null;
 
     return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-         🎭 등장인물 정보 (최우선 준수 사항) 🎭
+🎭 등장인물 (참조 이미지 기반으로만 외모 묘사)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${protagonistWarning}
-${characterDescriptions.join("\n\n")}
-${imageRefGuide}
-⚠️ 캐릭터 일관성 필수 지침:
-1. 모든 장면에서 위 캐릭터들의 외모, 의상, 특징이 정확히 동일해야 합니다.
-2. 각 프레임 프롬프트에 캐릭터 이름과 외모 특징(머리색, 피부톤, 체형, 성별, 나이)을 반드시 포함하세요.
-3. 캐릭터 이름을 프롬프트에 포함하고, 참조 이미지 번호도 함께 언급하세요 (예: "철수(Image 1) walks into the room").
-4. 의상은 모든 장면에서 동일하게 유지하세요 (스토리상 변경이 없다면).
-5. 주인공 정보와 다른 성별/나이/외모의 캐릭터를 임의로 생성하지 마세요.
+${characterList}
+${protagonist && protagonistMapping ? `
+🚨 주인공: ${protagonist.name} (${protagonistMapping.imageRange})
+- 모든 장면에서 주인공의 외모는 ${protagonistMapping.imageRange}를 기준으로 하세요.
+` : ""}
+⚠️ 필수 지침:
+1. 캐릭터 외모는 절대 텍스트로 묘사하지 마세요! 무조건 참조 이미지 번호만 사용!
+2. 예시: "${protagonist?.name || charsWithImages[0]?.name}(${protagonistMapping?.imageRange || characterImageMapping[0]?.imageRange})가 방에 들어온다" - 이렇게 이미지 번호만 언급
+3. 금지: "검은 머리", "하얀 피부", "파란 옷" 등 외모/의상 텍스트 묘사
+4. 이미지 생성 시 참조 이미지가 자동으로 전달되므로 텍스트 묘사 불필요
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     `.trim();
   };
@@ -1663,9 +1636,29 @@ ${imageRefGuide}
     const isSelected = selectedCharacters.some(c => c.id === character.id);
     if (isSelected) {
       setSelectedCharacters(selectedCharacters.filter(c => c.id !== character.id));
+      // 모드에서도 제거
+      setCharacterImageModes(prev => {
+        const newModes = { ...prev };
+        delete newModes[character.id];
+        return newModes;
+      });
     } else {
       setSelectedCharacters([...selectedCharacters, character]);
+      // 참조 이미지가 있으면 기본 모드를 "ai_reference"로, 없으면 "ai_create"로 설정
+      const hasImages = [...(character.referenceImages || []), ...(character.generatedImages || [])].length > 0;
+      setCharacterImageModes(prev => ({
+        ...prev,
+        [character.id]: hasImages ? "ai_reference" : "ai_create"
+      }));
     }
+  };
+
+  // 캐릭터 이미지 모드 변경 함수
+  const setCharacterImageMode = (characterId: string, mode: "attached" | "ai_reference" | "ai_create") => {
+    setCharacterImageModes(prev => ({
+      ...prev,
+      [characterId]: mode
+    }));
   };
 
   const generateScript = async () => {
@@ -1788,10 +1781,10 @@ ${topicSpecial ? `특별 요청: ${topicSpecial}` : ""}
             prompt: `당신은 세계적인 영화감독이자 시네마토그래퍼입니다. AI 영상 생성 모델(Veo 3.1, Sora, Runway Gen-3)을 위한 최고 품질의 상세 프롬프트를 작성합니다.
 
 **★★★ 최우선 지침 ★★★**
-1. 모든 응답은 반드시 한글로 작성하세요. 영어 단어 사용 금지.
+1. 모든 응답은 반드시 한글로 작성하세요. 단, 숫자는 아라비아 숫자(1, 2, 3...)로 표기하세요. 영어 단어 사용 금지.
 2. 각 프롬프트는 매우 길고 상세하게 작성하세요 (최소 150단어 이상).
 3. 모든 시각적 요소를 구체적인 수치와 방향으로 명시하세요.
-4. 🚨 등장인물 정보가 주어지면 반드시 그 정보(성별, 나이, 외모, 의상)를 정확히 따르세요. 임의로 다른 캐릭터를 생성하지 마세요!
+4. 🚨 등장인물은 첨부된 참조 이미지만 기반으로 묘사하세요. 외모나 의상을 텍스트로 상세히 묘사하지 말고, 이미지 번호만 언급하세요!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                  【 영상 기획 정보 】
@@ -1830,20 +1823,21 @@ ${videoStyleGuide}
 1. 【조명】 광원 위치(좌상단 45도 등), 광질(부드러운/날카로운), 색온도(따뜻한 황금빛/차가운 푸른빛), 강도(밝음/어둠), 그림자 방향과 깊이
 2. 【색감】 전체 색조(따뜻한/차가운/중립), 주요 색상들, 채도(선명/뮤트), 명암 대비 정도, 하이라이트와 섀도우 색상
 3. 【구도】 프레임 내 피사체 위치(3분할법, 중앙, 황금비), 전경/중경/배경 레이어, 깊이감, 프레임 내 시선 유도
-4. 【인물/피사체】 정확한 위치, 자세, 포즈, 표정, 시선 방향, 의상 디테일, 손과 팔의 위치
+4. 【인물/피사체】 정확한 위치, 자세, 포즈 (외모/의상은 참조 이미지 번호만 언급, 텍스트로 묘사 금지)
 5. 【배경】 장소의 구체적 묘사, 소품들, 텍스처, 재질감, 날씨 상태, 대기 효과(안개/먼지/빛줄기)
 6. 【분위기】 전체적인 무드, 감정적 톤, 시각적 분위기
 
 ■ VIDEO (비디오 프롬프트) 작성 요령:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 이것은 "움직이는 영상"입니다. 모든 동적 요소를 상세히 묘사!
+⚠️ 중요: 캐릭터 외모/의상 묘사 금지! 오직 동작과 카메라 움직임만 묘사!
 최소 200단어 이상으로 매우 상세하게 작성하세요!
 
 반드시 포함해야 할 요소:
-1. 【피사체 동작】
-   - 인물: 걷기/달리기 방향과 속도, 팔다리 움직임, 고개 돌림, 표정 변화 과정, 제스처
+1. 【피사체 동작】 (외모 묘사 금지! 동작만!)
+   - 인물: 걷기/달리기 방향과 속도, 팔다리 움직임, 고개 돌림, 표정 변화
    - 물체: 이동 경로, 회전, 흔들림, 떨어짐 등
-   - 구체적 예: "인물이 화면 왼쪽에서 오른쪽으로 천천히 걸어가며, 3초에 걸쳐 고개를 살짝 돌려 카메라를 바라본다"
+   - 구체적 예: "캐릭터가 화면 왼쪽에서 오른쪽으로 천천히 걸어가며, 고개를 돌려 카메라를 바라본다" (외모 묘사 없이!)
 
 2. 【카메라 워크】
    - 움직임 유형: 패닝(좌우)/틸트(상하)/달리(전후)/크레인(수직)/아크(원형)/핸드헬드(흔들림)
@@ -1994,18 +1988,23 @@ JSON 형식으로 응답해주세요:
       return `${prompt}. Include a speech bubble with the text: "${dialogue}"`;
     };
 
-    // 상대 경로를 절대 URL로 변환하는 함수
+    // 상대 경로를 공개 URL로 변환하는 함수 (Replicate에서 접근 가능하도록)
     const toAbsoluteUrl = (url: unknown): string | null => {
       if (!url || typeof url !== 'string') return null;
       // 이미 절대 URL이면 그대로 반환
       if (url.startsWith('http://') || url.startsWith('https://')) {
         return url;
       }
-      // 상대 경로인 경우 서버 도메인 추가
+      // 프로덕션 공개 도메인 사용 (Replicate가 접근할 수 있어야 함)
+      const PUBLIC_DOMAIN = "https://mov.hwasubun.ai";
+      // 상대 경로인 경우 공개 URL로 변환
       if (url.startsWith('/')) {
-        // 환경 변수 또는 현재 호스트 사용
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-        return `${baseUrl}${url}`;
+        let publicPath = url;
+        // /uploads/ -> /api/uploads/ (API 라우트를 통해 외부에서 접근 가능)
+        if (url.includes('/uploads/') && !url.includes('/api/uploads/')) {
+          publicPath = url.replace('/uploads/', '/api/uploads/');
+        }
+        return `${PUBLIC_DOMAIN}${publicPath}`;
       }
       return null;
     };
@@ -2061,28 +2060,50 @@ JSON 형식으로 응답해주세요:
         // N+1~M번째: 스타일 참조 이미지 (느낌/분위기)
         // M+1~끝: 이전 장면 이미지 (일관성 유지)
         const getConsistencyReferences = (additionalImages: string[] = [], sceneIndex: number = 0) => {
-          // 1. 캐릭터 이미지 (외모 참조용 - 캐릭터별로 순차 수집)
-          const charImagesWithMapping: { url: string; charName: string }[] = [];
-          const characterMapping: { name: string; startIdx: number; endIdx: number }[] = [];
+          // 1. 캐릭터 이미지 (외모 참조용 - 캐릭터별로 순차 수집, 모드에 따라 처리)
+          const charImagesWithMapping: { url: string; charName: string; mode: string }[] = [];
+          const characterMapping: { name: string; startIdx: number; endIdx: number; mode: string }[] = [];
           let currentIdx = 1;
 
+          console.log(`[getConsistencyReferences] 장면 ${sceneIndex + 1}, 캐릭터 수: ${selectedCharacters.length}`);
+
           selectedCharacters.forEach((char) => {
+            const mode = characterImageModes[char.id] || "ai_reference";
+            console.log(`[getConsistencyReferences] 캐릭터: ${char.name}, 모드: ${mode}, 업로드이미지: ${(char.referenceImages || []).length}개, 생성이미지: ${(char.generatedImages || []).length}개`);
+
+            // "ai_create" 모드면 해당 캐릭터의 참조 이미지 건너뛰기
+            if (mode === "ai_create") {
+              characterMapping.push({
+                name: char.name,
+                startIdx: 0,
+                endIdx: 0,
+                mode: "새로생성"
+              });
+              return;
+            }
+
             const startIdx = currentIdx;
             // 업로드 이미지 (최대 2개)
-            const uploaded = (char.referenceImages || [])
+            const rawUploaded = char.referenceImages || [];
+            console.log(`[getConsistencyReferences] ${char.name} 원본 업로드이미지:`, rawUploaded);
+            const uploaded = rawUploaded
               .map(img => toAbsoluteUrl(img))
               .filter((img): img is string => img !== null)
               .slice(0, 2);
+            console.log(`[getConsistencyReferences] ${char.name} 변환된 업로드이미지:`, uploaded);
             uploaded.forEach(url => {
-              charImagesWithMapping.push({ url, charName: char.name });
+              charImagesWithMapping.push({ url, charName: char.name, mode });
             });
 
             // 생성 이미지 (최대 1개)
-            const generated = (char.generatedImages || [])
+            const rawGenerated = char.generatedImages || [];
+            console.log(`[getConsistencyReferences] ${char.name} 원본 생성이미지:`, rawGenerated);
+            const generated = rawGenerated
               .filter(img => img && (img.includes('replicate.delivery') || img.includes('replicate.com')))
               .slice(0, 1);
+            console.log(`[getConsistencyReferences] ${char.name} 필터된 생성이미지:`, generated);
             generated.forEach(url => {
-              charImagesWithMapping.push({ url, charName: char.name });
+              charImagesWithMapping.push({ url, charName: char.name, mode });
             });
 
             const totalForChar = uploaded.length + generated.length;
@@ -2091,7 +2112,8 @@ JSON 형식으로 응답해주세요:
               characterMapping.push({
                 name: char.name,
                 startIdx,
-                endIdx: currentIdx - 1
+                endIdx: currentIdx - 1,
+                mode: mode === "attached" ? "첨부사용" : "AI참조"
               });
             }
           });
@@ -2116,7 +2138,8 @@ JSON 형식으로 응답해주세요:
           ];
 
           const charMappingLog = characterMapping.map(m =>
-            m.startIdx === m.endIdx ? `${m.name}: Image ${m.startIdx}` : `${m.name}: Image ${m.startIdx}-${m.endIdx}`
+            m.startIdx === 0 ? `${m.name}(${m.mode})` :
+            m.startIdx === m.endIdx ? `${m.name}(${m.mode}): Image ${m.startIdx}` : `${m.name}(${m.mode}): Image ${m.startIdx}-${m.endIdx}`
           ).join(', ');
 
           console.log(`[참조이미지 구성] 장면 ${sceneIndex + 1}:
@@ -2181,14 +2204,16 @@ JSON 형식으로 응답해주세요:
         };
 
         // 1. 시작 프레임 생성 (재시도 로직 포함)
+        // 시작 프레임의 참조 이미지 정보를 저장해서 끝 프레임에서도 사용
+        const startFrameRefInfo = getConsistencyReferences([], i);
+
         if (scene.prompt1) {
-          const refInfo = getConsistencyReferences([], i);
-          const imageRefPrompt = buildImageRefPrompt(refInfo);
+          const imageRefPrompt = buildImageRefPrompt(startFrameRefInfo);
           const promptWithDialogue = addDialogueToPrompt(scene.prompt1, scene.dialogue1);
           const enhancedPrompt = imageRefPrompt + promptWithDialogue;
           const frameLabel = `장면 ${i + 1} 시작 프레임`;
 
-          console.log(`${frameLabel}: 참조 이미지 ${refInfo.images.length}개 사용`);
+          console.log(`${frameLabel}: 참조 이미지 ${startFrameRefInfo.images.length}개 사용`);
           console.log(`${frameLabel} 프롬프트 (참조 정보 포함):`, enhancedPrompt.substring(0, 200) + '...');
           setLoadingStep(`${frameLabel} 생성 중...`);
 
@@ -2197,7 +2222,7 @@ JSON 형식으로 응답해주세요:
             model: imageModel,
             prompt: enhancedPrompt,
             aspectRatio,
-            referenceImages: refInfo.images.length > 0 ? refInfo.images : undefined,
+            referenceImages: startFrameRefInfo.images.length > 0 ? startFrameRefInfo.images : undefined,
           }, 5, frameLabel);
 
           if (result1.success && result1.url) {
@@ -2211,15 +2236,24 @@ JSON 형식으로 응답해주세요:
           }
         }
 
-        // 2. 끝 프레임 생성 (시작 프레임도 참조에 추가, 재시도 로직 포함)
+        // 2. 끝 프레임 생성 (시작 프레임의 참조 이미지 + 시작 프레임 이미지 사용)
         if (scene.prompt2) {
-          const refInfo = getConsistencyReferences(sceneImages, i);
-          const imageRefPrompt = buildImageRefPrompt(refInfo);
+          // 시작 프레임의 참조 이미지에 시작 프레임 결과를 추가 (캐릭터 일관성 유지)
+          const endFrameRefs = [...startFrameRefInfo.images, ...sceneImages]
+            .filter((v, idx, arr) => arr.indexOf(v) === idx) // 중복 제거
+            .slice(0, 14);
+
+          const endFrameRefInfo = {
+            images: endFrameRefs,
+            mapping: startFrameRefInfo.mapping
+          };
+
+          const imageRefPrompt = buildImageRefPrompt(endFrameRefInfo);
           const promptWithDialogue = addDialogueToPrompt(scene.prompt2, scene.dialogue2);
           const enhancedPrompt = imageRefPrompt + promptWithDialogue;
           const frameLabel = `장면 ${i + 1} 끝 프레임`;
 
-          console.log(`${frameLabel}: 참조 이미지 ${refInfo.images.length}개 사용`);
+          console.log(`${frameLabel}: 참조 이미지 ${endFrameRefs.length}개 사용 (시작 프레임 ${startFrameRefInfo.images.length}개 + 생성 ${sceneImages.length}개)`);
           console.log(`${frameLabel} 프롬프트 (참조 정보 포함):`, enhancedPrompt.substring(0, 200) + '...');
           setLoadingStep(`${frameLabel} 생성 중...`);
 
@@ -2228,7 +2262,7 @@ JSON 형식으로 응답해주세요:
             model: imageModel,
             prompt: enhancedPrompt,
             aspectRatio,
-            referenceImages: refInfo.images.length > 0 ? refInfo.images : undefined
+            referenceImages: endFrameRefs.length > 0 ? endFrameRefs : undefined
           }, 5, frameLabel);
 
           if (result2.success && result2.url) {
@@ -2282,13 +2316,17 @@ JSON 형식으로 응답해주세요:
       const formatConfig = VIDEO_FORMATS.find(f => f.id === styleOptions.format);
       const aspectRatio = formatConfig?.aspectRatio || "16:9";
 
-      // 상대 경로를 절대 URL로 변환하는 함수
+      // 상대 경로를 공개 URL로 변환하는 함수 (Replicate에서 접근 가능하도록)
       const toAbsoluteUrl = (url: unknown): string | null => {
         if (!url || typeof url !== 'string') return null;
         if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        const PUBLIC_DOMAIN = "https://mov.hwasubun.ai";
         if (url.startsWith('/')) {
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-          return `${baseUrl}${url}`;
+          let publicPath = url;
+          if (url.includes('/uploads/') && !url.includes('/api/uploads/')) {
+            publicPath = url.replace('/uploads/', '/api/uploads/');
+          }
+          return `${PUBLIC_DOMAIN}${publicPath}`;
         }
         return null;
       };
@@ -2371,12 +2409,23 @@ JSON 형식으로 응답해주세요:
       const formatConfig = VIDEO_FORMATS.find(f => f.id === styleOptions.format);
       const aspectRatio = formatConfig?.aspectRatio || "16:9";
 
+      // 상대 경로를 공개 URL로 변환하는 함수 (Replicate에서 접근 가능하도록)
       const toAbsoluteUrl = (url: unknown): string | null => {
         if (!url || typeof url !== 'string') return null;
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        // 이미 절대 URL이면 그대로 반환
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          return url;
+        }
+        // 프로덕션 공개 도메인 사용 (Replicate가 접근할 수 있어야 함)
+        const PUBLIC_DOMAIN = "https://mov.hwasubun.ai";
+        // 상대 경로인 경우 공개 URL로 변환
         if (url.startsWith('/')) {
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-          return `${baseUrl}${url}`;
+          let publicPath = url;
+          // /uploads/ -> /api/uploads/ (API 라우트를 통해 외부에서 접근 가능)
+          if (url.includes('/uploads/') && !url.includes('/api/uploads/')) {
+            publicPath = url.replace('/uploads/', '/api/uploads/');
+          }
+          return `${PUBLIC_DOMAIN}${publicPath}`;
         }
         return null;
       };
@@ -2527,7 +2576,7 @@ JSON 형식으로 응답해주세요:
           prompt: `당신은 세계적인 영화감독이자 시네마토그래퍼입니다. AI 영상 생성 모델을 위한 최고 품질의 상세 프롬프트를 작성합니다.
 
 **★★★ 최우선 지침 ★★★**
-1. 모든 응답은 반드시 한글로 작성하세요. 영어 단어 사용 금지.
+1. 모든 응답은 반드시 한글로 작성하세요. 단, 숫자는 아라비아 숫자(1, 2, 3...)로 표기하세요. 영어 단어 사용 금지.
 2. 각 프롬프트는 매우 길고 상세하게 작성하세요 (최소 150단어 이상).
 3. 모든 시각적 요소를 구체적인 수치와 방향으로 명시하세요.
 
@@ -4302,52 +4351,81 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                       {selectedCharacters.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-zinc-700">
                           <p className="text-xs text-zinc-400 mb-2">선택된 캐릭터:</p>
-                          {/* 캐릭터 참조 이미지 상태 표시 */}
-                          {(() => {
-                            const totalRefImages = selectedCharacters.reduce((acc, char) => {
-                              const allImages = [...(char.referenceImages || []), ...(char.generatedImages || [])];
-                              // http/https URL 또는 상대 경로(/uploads/...) 모두 유효
-                              const validCount = allImages.filter(
-                                (img: string) => img && (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('/'))
-                              ).length;
-                              return acc + validCount;
-                            }, 0);
-                            return totalRefImages > 0 ? (
-                              <div className="mb-2 p-2 bg-green-900/30 border border-green-700 rounded-lg">
-                                <p className="text-xs text-green-300">
-                                  {totalRefImages}개의 참조 이미지가 이미지 생성에 사용됩니다
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="mb-2 p-2 bg-amber-900/30 border border-amber-700 rounded-lg">
-                                <p className="text-xs text-amber-300">
-                                  ⚠️ 선택된 캐릭터에 유효한 참조 이미지가 없습니다. 캐릭터 페이지에서 이미지를 생성해주세요.
-                                </p>
-                              </div>
-                            );
-                          })()}
-                          <div className="flex flex-wrap gap-2">
+                          <div className="space-y-2">
                             {selectedCharacters.map((char) => {
                               const hasValidImages = [...(char.referenceImages || []), ...(char.generatedImages || [])]
                                 .some((img: string) => img && (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('/')));
+                              const currentMode = characterImageModes[char.id] || (hasValidImages ? "ai_reference" : "ai_create");
                               return (
-                              <span
-                                key={char.id}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                                  hasValidImages ? 'bg-green-600/20 text-green-300' : 'bg-amber-600/20 text-amber-300'
-                                }`}
-                                title={hasValidImages ? '참조 이미지 있음' : '참조 이미지 없음'}
-                              >
-                                {!hasValidImages && <span>⚠️</span>}
-                                {char.name}
-                                <button
-                                  onClick={() => toggleCharacter(char)}
-                                  className="hover:text-white"
+                                <div
+                                  key={char.id}
+                                  className="p-2 bg-zinc-800 rounded-lg"
                                 >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            );
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      {(char.referenceImages?.[0] || char.generatedImages?.[0]) ? (
+                                        <img
+                                          src={char.referenceImages?.[0] || char.generatedImages?.[0]}
+                                          alt={char.name}
+                                          className="w-8 h-8 rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                                          <Users className="w-4 h-4 text-zinc-500" />
+                                        </div>
+                                      )}
+                                      <span className="text-sm font-medium text-white">{char.name}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => toggleCharacter(char)}
+                                      className="text-zinc-500 hover:text-white"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => setCharacterImageMode(char.id, "attached")}
+                                      disabled={!hasValidImages}
+                                      className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
+                                        currentMode === "attached"
+                                          ? "bg-blue-600 text-white"
+                                          : hasValidImages
+                                            ? "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
+                                            : "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                                      }`}
+                                      title="첨부된 이미지를 그대로 사용"
+                                    >
+                                      첨부 사용
+                                    </button>
+                                    <button
+                                      onClick={() => setCharacterImageMode(char.id, "ai_reference")}
+                                      disabled={!hasValidImages}
+                                      className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
+                                        currentMode === "ai_reference"
+                                          ? "bg-green-600 text-white"
+                                          : hasValidImages
+                                            ? "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
+                                            : "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                                      }`}
+                                      title="AI가 참조 이미지를 기반으로 캐릭터 생성"
+                                    >
+                                      AI 참조
+                                    </button>
+                                    <button
+                                      onClick={() => setCharacterImageMode(char.id, "ai_create")}
+                                      className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
+                                        currentMode === "ai_create"
+                                          ? "bg-purple-600 text-white"
+                                          : "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
+                                      }`}
+                                      title="AI가 새로운 캐릭터 이미지 생성"
+                                    >
+                                      새로 생성
+                                    </button>
+                                  </div>
+                                </div>
+                              );
                             })}
                           </div>
                         </div>
@@ -4723,8 +4801,8 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                         value={frame.value}
                         onChange={(e) => updatePrompt(sceneIndex, frame.index, e.target.value)}
                         readOnly={editingScene !== sceneIndex}
-                        rows={4}
-                        className={`w-full bg-zinc-800 border rounded-lg px-3 py-2 text-sm text-white resize-none ${
+                        rows={8}
+                        className={`w-full bg-zinc-800 border rounded-lg px-3 py-2 text-sm text-white resize-y min-h-[160px] ${
                           editingScene === sceneIndex ? "border-purple-500" : "border-zinc-700"
                         }`}
                       />
@@ -4749,9 +4827,9 @@ ${topicStoryline ? `줄거리: ${topicStoryline}` : ""}
                       setImagePrompts(newPrompts);
                     }}
                     readOnly={editingScene !== sceneIndex}
-                    rows={3}
-                    placeholder="예: 카메라가 천천히 줌인하며, 인물이 왼쪽에서 오른쪽으로 걸어간다. 배경의 나뭇잎이 바람에 흔들리고..."
-                    className={`w-full bg-zinc-800 border rounded-lg px-3 py-2 text-sm text-white resize-none ${
+                    rows={10}
+                    placeholder="예: 카메라가 천천히 줌인하며, 캐릭터가 왼쪽에서 오른쪽으로 걸어간다. 배경의 나뭇잎이 바람에 흔들리고..."
+                    className={`w-full bg-zinc-800 border rounded-lg px-3 py-2 text-sm text-white resize-y min-h-[200px] ${
                       editingScene === sceneIndex ? "border-blue-500" : "border-zinc-700"
                     }`}
                   />

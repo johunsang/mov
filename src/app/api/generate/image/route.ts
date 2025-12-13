@@ -38,6 +38,15 @@ export async function POST(request: NextRequest) {
     const isNanoBanana = modelConfig.id.includes("nano-banana");
     const isFlux = modelConfig.id.includes("flux");
 
+    // 디버깅: 받은 referenceImages 상세 로그
+    console.log(`[API Image] 요청 받음:`, {
+      model: modelKey,
+      hasReferenceImages: !!referenceImages,
+      referenceImagesLength: referenceImages?.length || 0,
+      referenceImagesType: typeof referenceImages,
+      firstImage: referenceImages?.[0]?.substring?.(0, 80) || 'none',
+    });
+
     let baseInput: Record<string, unknown>;
 
     if (isNanoBanana) {

@@ -6,7 +6,6 @@ import {
   Edit2,
   Trash2,
   Upload,
-  Wand2,
   Loader2,
   X,
   User,
@@ -46,9 +45,90 @@ const AGES = [
   { id: "아기", name: "아기", icon: "👶" },
   { id: "어린이", name: "어린이", icon: "🧒" },
   { id: "청소년", name: "청소년", icon: "🧑‍🎓" },
-  { id: "청년", name: "청년", icon: "🧑‍💼" },
+  { id: "청년", name: "청년", icon: "🧑" },
   { id: "중년", name: "중년", icon: "🧔" },
   { id: "노년", name: "노년", icon: "👴" },
+];
+
+const BODY_TYPES = [
+  { id: "마른", name: "마른", icon: "🦴" },
+  { id: "보통", name: "보통", icon: "🧍" },
+  { id: "근육질", name: "근육질", icon: "💪" },
+  { id: "통통", name: "통통", icon: "🐻" },
+  { id: "뚱뚱", name: "뚱뚱", icon: "🍔" },
+];
+
+const SKIN_TONES = [
+  { id: "밝은 피부", name: "밝은 피부", color: "#FFE4C4" },
+  { id: "보통 피부", name: "보통 피부", color: "#DEB887" },
+  { id: "구릿빛 피부", name: "구릿빛 피부", color: "#CD853F" },
+  { id: "어두운 피부", name: "어두운 피부", color: "#8B4513" },
+];
+
+const HAIR_STYLES = [
+  { id: "짧은 머리", name: "짧은 머리", icon: "✂️" },
+  { id: "중간 머리", name: "중간 머리", icon: "💇" },
+  { id: "긴 머리", name: "긴 머리", icon: "👩‍🦰" },
+  { id: "곱슬머리", name: "곱슬머리", icon: "🌀" },
+  { id: "파마", name: "파마", icon: "💫" },
+  { id: "포니테일", name: "포니테일", icon: "🎀" },
+  { id: "묶은 머리", name: "묶은 머리", icon: "💈" },
+  { id: "대머리", name: "대머리", icon: "🥚" },
+];
+
+const HAIR_COLORS = [
+  { id: "검은색", name: "검은색", color: "#000000" },
+  { id: "갈색", name: "갈색", color: "#8B4513" },
+  { id: "금발", name: "금발", color: "#FFD700" },
+  { id: "빨간색", name: "빨간색", color: "#B22222" },
+  { id: "흰색/은색", name: "흰색/은색", color: "#C0C0C0" },
+  { id: "파란색", name: "파란색", color: "#4169E1" },
+  { id: "분홍색", name: "분홍색", color: "#FF69B4" },
+  { id: "보라색", name: "보라색", color: "#8A2BE2" },
+];
+
+const EYE_COLORS = [
+  { id: "검은색", name: "검은색", color: "#000000" },
+  { id: "갈색", name: "갈색", color: "#8B4513" },
+  { id: "파란색", name: "파란색", color: "#4169E1" },
+  { id: "녹색", name: "녹색", color: "#228B22" },
+  { id: "회색", name: "회색", color: "#808080" },
+  { id: "빨간색", name: "빨간색", color: "#FF0000" },
+  { id: "금색", name: "금색", color: "#FFD700" },
+];
+
+const CLOTHING_STYLES = [
+  { id: "캐주얼", name: "캐주얼", icon: "👕" },
+  { id: "정장", name: "정장", icon: "🤵" },
+  { id: "스포츠웨어", name: "스포츠웨어", icon: "🏃" },
+  { id: "한복", name: "한복", icon: "🎎" },
+  { id: "교복", name: "교복", icon: "🎓" },
+  { id: "군복", name: "군복", icon: "🪖" },
+  { id: "의사 가운", name: "의사 가운", icon: "🩺" },
+  { id: "판타지 의상", name: "판타지 의상", icon: "🧙" },
+  { id: "SF 의상", name: "SF 의상", icon: "🚀" },
+];
+
+const ACCESSORIES = [
+  { id: "안경", name: "안경", icon: "👓" },
+  { id: "선글라스", name: "선글라스", icon: "🕶️" },
+  { id: "모자", name: "모자", icon: "🧢" },
+  { id: "귀걸이", name: "귀걸이", icon: "💎" },
+  { id: "목걸이", name: "목걸이", icon: "📿" },
+  { id: "시계", name: "시계", icon: "⌚" },
+  { id: "가방", name: "가방", icon: "👜" },
+  { id: "스카프", name: "스카프", icon: "🧣" },
+];
+
+const DISTINCTIVE_FEATURES = [
+  { id: "수염", name: "수염", icon: "🧔" },
+  { id: "콧수염", name: "콧수염", icon: "👨" },
+  { id: "흉터", name: "흉터", icon: "⚔️" },
+  { id: "점", name: "점", icon: "•" },
+  { id: "주근깨", name: "주근깨", icon: "🌟" },
+  { id: "문신", name: "문신", icon: "🐉" },
+  { id: "피어싱", name: "피어싱", icon: "💍" },
+  { id: "안대", name: "안대", icon: "🏴‍☠️" },
 ];
 
 export default function CharactersPage() {
@@ -57,8 +137,6 @@ export default function CharactersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -67,23 +145,24 @@ export default function CharactersPage() {
     role: "",
     gender: "",
     age: "",
+    personality: "",
+    bodyType: "",
+    skinTone: "",
+    hairStyle: "",
+    hairColor: "",
+    eyeColor: "",
+    clothingStyle: "",
+    accessories: [] as string[],
+    distinctiveFeatures: [] as string[],
     appearance: "",
     clothing: "",
-    personality: "",
     referenceImages: [] as string[],
     generatedImages: [] as string[],
   });
 
   useEffect(() => {
     fetchCharacters();
-    fetchApiKey();
   }, []);
-
-  const fetchApiKey = async () => {
-    const res = await fetch("/api/user/apikey/full");
-    const data = await res.json();
-    setApiKey(data.key);
-  };
 
   const fetchCharacters = async () => {
     try {
@@ -104,27 +183,92 @@ export default function CharactersPage() {
       role: "",
       gender: "",
       age: "",
+      personality: "",
+      bodyType: "",
+      skinTone: "",
+      hairStyle: "",
+      hairColor: "",
+      eyeColor: "",
+      clothingStyle: "",
+      accessories: [],
+      distinctiveFeatures: [],
       appearance: "",
       clothing: "",
-      personality: "",
       referenceImages: [],
       generatedImages: [],
     });
     setEditingCharacter(null);
   };
 
+  // appearance 문자열에서 상세 속성 파싱
+  const parseAppearance = (appearance: string | null) => {
+    if (!appearance) return {};
+    const result: Record<string, string | string[]> = {};
+
+    // 체형, 피부, 머리스타일, 머리색, 눈색 등 파싱
+    BODY_TYPES.forEach(bt => {
+      if (appearance.includes(bt.id)) result.bodyType = bt.id;
+    });
+    SKIN_TONES.forEach(st => {
+      if (appearance.includes(st.id)) result.skinTone = st.id;
+    });
+    HAIR_STYLES.forEach(hs => {
+      if (appearance.includes(hs.id)) result.hairStyle = hs.id;
+    });
+    HAIR_COLORS.forEach(hc => {
+      if (appearance.includes(hc.id + " 머리") || appearance.includes(hc.id + "머리") || appearance.includes("머리색: " + hc.id)) result.hairColor = hc.id;
+    });
+    EYE_COLORS.forEach(ec => {
+      if (appearance.includes(ec.id + " 눈") || appearance.includes(ec.id + "눈") || appearance.includes("눈색: " + ec.id)) result.eyeColor = ec.id;
+    });
+
+    const accessories: string[] = [];
+    ACCESSORIES.forEach(acc => {
+      if (appearance.includes(acc.id)) accessories.push(acc.id);
+    });
+    if (accessories.length > 0) result.accessories = accessories;
+
+    const features: string[] = [];
+    DISTINCTIVE_FEATURES.forEach(df => {
+      if (appearance.includes(df.id)) features.push(df.id);
+    });
+    if (features.length > 0) result.distinctiveFeatures = features;
+
+    return result;
+  };
+
+  // clothing 문자열에서 의상 스타일 파싱
+  const parseClothing = (clothing: string | null) => {
+    if (!clothing) return "";
+    for (const cs of CLOTHING_STYLES) {
+      if (clothing.includes(cs.id)) return cs.id;
+    }
+    return "";
+  };
+
   const openModal = (character?: Character) => {
     if (character) {
       setEditingCharacter(character);
+      const parsedAppearance = parseAppearance(character.appearance);
+      const parsedClothingStyle = parseClothing(character.clothing);
+
       setFormData({
         name: character.name,
         description: character.description || "",
         role: character.role || "",
         gender: character.gender || "",
         age: character.age || "",
+        personality: character.personality || "",
+        bodyType: (parsedAppearance.bodyType as string) || "",
+        skinTone: (parsedAppearance.skinTone as string) || "",
+        hairStyle: (parsedAppearance.hairStyle as string) || "",
+        hairColor: (parsedAppearance.hairColor as string) || "",
+        eyeColor: (parsedAppearance.eyeColor as string) || "",
+        clothingStyle: parsedClothingStyle,
+        accessories: (parsedAppearance.accessories as string[]) || [],
+        distinctiveFeatures: (parsedAppearance.distinctiveFeatures as string[]) || [],
         appearance: character.appearance || "",
         clothing: character.clothing || "",
-        personality: character.personality || "",
         referenceImages: character.referenceImages || [],
         generatedImages: character.generatedImages || [],
       });
@@ -139,6 +283,29 @@ export default function CharactersPage() {
     resetForm();
   };
 
+  // 선택된 옵션들을 외모 문자열로 변환
+  const generateAppearanceString = () => {
+    const parts: string[] = [];
+
+    if (formData.bodyType) parts.push(`체형: ${formData.bodyType}`);
+    if (formData.skinTone) parts.push(`${formData.skinTone}`);
+    if (formData.hairStyle) parts.push(`${formData.hairStyle}`);
+    if (formData.hairColor) parts.push(`머리색: ${formData.hairColor}`);
+    if (formData.eyeColor) parts.push(`눈색: ${formData.eyeColor}`);
+    if (formData.accessories.length > 0) parts.push(`액세서리: ${formData.accessories.join(", ")}`);
+    if (formData.distinctiveFeatures.length > 0) parts.push(`특징: ${formData.distinctiveFeatures.join(", ")}`);
+
+    return parts.length > 0 ? parts.join(", ") : formData.appearance;
+  };
+
+  // 선택된 의상 스타일을 의상 문자열로 변환
+  const generateClothingString = () => {
+    if (formData.clothingStyle) {
+      return `${formData.clothingStyle} 스타일`;
+    }
+    return formData.clothing;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) return;
@@ -149,10 +316,17 @@ export default function CharactersPage() {
         : "/api/characters";
       const method = editingCharacter ? "PUT" : "POST";
 
+      // appearance와 clothing 문자열 생성
+      const submitData = {
+        ...formData,
+        appearance: generateAppearanceString(),
+        clothing: generateClothingString(),
+      };
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (res.ok) {
@@ -216,69 +390,9 @@ export default function CharactersPage() {
     }
   };
 
-  const removeImage = (index: number, type: "reference" | "generated") => {
-    if (type === "reference") {
-      const newImages = formData.referenceImages.filter((_, i) => i !== index);
-      setFormData({ ...formData, referenceImages: newImages });
-    } else {
-      const newImages = formData.generatedImages.filter((_, i) => i !== index);
-      setFormData({ ...formData, generatedImages: newImages });
-    }
-  };
-
-  const generateCharacterImage = async () => {
-    if (!apiKey || !formData.appearance) {
-      alert("API 키와 외모 설명이 필요합니다.");
-      return;
-    }
-
-    setGenerating(true);
-
-    try {
-      // 참조 이미지가 있으면 함께 전송
-      const referenceImages = [...formData.referenceImages, ...formData.generatedImages];
-
-      // 캐릭터 정보로 프롬프트 생성 (Nano Banana Pro 형식: Image 1, Image 2 등으로 참조)
-      const hasReferenceImages = referenceImages.length > 0;
-
-      let characterPrompt: string;
-      if (hasReferenceImages) {
-        // Nano Banana Pro 참조 이미지 형식 사용
-        const imageCount = referenceImages.length;
-        const imageRefs = imageCount === 1
-          ? "Using Image 1 (the character reference)"
-          : `Using Image 1 through Image ${imageCount} (character references)`;
-
-        characterPrompt = `${imageRefs}, create a hyper-realistic portrait where the generated character has the exact same face, facial features, and identity as shown in the reference image(s). High-Fidelity Preservation: Preserve the original face shape, skin tone, eye color, hair style, and all distinctive facial features with extreme accuracy. ${formData.gender || ""} ${formData.age || ""}, ${formData.appearance}. ${formData.clothing ? `Outfit: ${formData.clothing}.` : ""} ${formData.personality ? `Expression/Mood: ${formData.personality}.` : ""} Seamless Integration: Match ambient lighting and create natural shadows. Photography Style: Professional portrait, shot on Canon EOS R5 with 85mm f/1.4 lens for natural bokeh.`.trim();
-      } else {
-        characterPrompt = `High quality character portrait, ${formData.gender || ""} ${formData.age || ""}, ${formData.appearance}. ${formData.clothing ? `Outfit: ${formData.clothing}` : ""} ${formData.personality ? `Mood: ${formData.personality}` : ""} Consistent character appearance, detailed face, professional illustration style.`.trim();
-      }
-
-      const res = await fetch("/api/generate/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apiKey,
-          model: "nano-banana-pro",
-          prompt: characterPrompt,
-          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setFormData({
-          ...formData,
-          generatedImages: [...formData.generatedImages, data.url],
-        });
-      } else {
-        alert("이미지 생성에 실패했습니다: " + data.error);
-      }
-    } catch {
-      alert("이미지 생성에 실패했습니다.");
-    } finally {
-      setGenerating(false);
-    }
+  const removeImage = (index: number) => {
+    const newImages = formData.referenceImages.filter((_, i) => i !== index);
+    setFormData({ ...formData, referenceImages: newImages });
   };
 
   if (loading) {
@@ -347,21 +461,14 @@ export default function CharactersPage() {
               {/* 캐릭터 정보 */}
               <div className="p-4">
                 <h3 className="text-lg font-semibold text-white mb-1">{character.name}</h3>
+                {/* 이미지 개수 표시 */}
                 <div className="flex flex-wrap gap-1 mb-2">
-                  {character.gender && (
+                  {((character.referenceImages?.length || 0) + (character.generatedImages?.length || 0)) > 0 && (
                     <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded text-xs">
-                      {character.gender}
-                    </span>
-                  )}
-                  {character.age && (
-                    <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded text-xs">
-                      {character.age}
+                      이미지 {(character.referenceImages?.length || 0) + (character.generatedImages?.length || 0)}장
                     </span>
                   )}
                 </div>
-                {character.description && (
-                  <p className="text-sm text-zinc-500 line-clamp-2">{character.description}</p>
-                )}
 
                 {/* 액션 버튼 */}
                 <div className="flex gap-2 mt-4">
@@ -433,22 +540,23 @@ export default function CharactersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* 성별 & 나이 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-zinc-400 mb-2">성별</label>
-                  <div className="flex gap-2">
-                    {GENDERS.map((gender) => (
+                  <div className="flex flex-wrap gap-2">
+                    {GENDERS.map((g) => (
                       <button
-                        key={gender.id}
+                        key={g.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, gender: gender.id })}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
-                          formData.gender === gender.id
-                            ? "bg-purple-600 text-white"
+                        onClick={() => setFormData({ ...formData, gender: g.id })}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          formData.gender === g.id
+                            ? "bg-blue-600 text-white"
                             : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                         }`}
                       >
-                        {gender.icon} {gender.name}
+                        {g.icon} {g.name}
                       </button>
                     ))}
                   </div>
@@ -456,66 +564,235 @@ export default function CharactersPage() {
                 <div>
                   <label className="block text-sm text-zinc-400 mb-2">나이대</label>
                   <div className="flex flex-wrap gap-2">
-                    {AGES.map((age) => (
+                    {AGES.map((a) => (
                       <button
-                        key={age.id}
+                        key={a.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, age: age.id })}
+                        onClick={() => setFormData({ ...formData, age: a.id })}
                         className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                          formData.age === age.id
-                            ? "bg-purple-600 text-white"
+                          formData.age === a.id
+                            ? "bg-green-600 text-white"
                             : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                         }`}
                       >
-                        {age.icon} {age.name}
+                        {a.icon} {a.name}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
+              {/* 설명 */}
               <div>
-                <label className="block text-sm text-zinc-400 mb-2">간략한 설명</label>
-                <input
-                  type="text"
+                <label className="block text-sm text-zinc-400 mb-2">캐릭터 설명</label>
+                <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
-                  placeholder="한 줄로 캐릭터를 설명해주세요"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">외모 상세 설명</label>
-                <textarea
-                  value={formData.appearance}
-                  onChange={(e) => setFormData({ ...formData, appearance: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white resize-none"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white resize-y min-h-[80px]"
+                  placeholder="캐릭터에 대한 간단한 설명 (배경, 직업 등)"
                   rows={3}
-                  placeholder="얼굴 형태, 머리 색상, 눈 색상, 피부톤, 특징적인 외모 등을 자세히 설명해주세요"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-2">의상 스타일</label>
-                  <textarea
-                    value={formData.clothing}
-                    onChange={(e) => setFormData({ ...formData, clothing: e.target.value })}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white resize-none"
-                    rows={2}
-                    placeholder="주로 입는 의상, 색상, 스타일 등"
-                  />
+              {/* 성격 */}
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">성격</label>
+                <textarea
+                  value={formData.personality}
+                  onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white resize-y min-h-[80px]"
+                  placeholder="캐릭터의 성격 특성 (예: 밝고 활발함, 내성적이고 조용함 등)"
+                  rows={3}
+                />
+              </div>
+
+              {/* 외모 상세 설정 */}
+              <div className="border border-zinc-700 rounded-xl p-4 space-y-4">
+                <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                  🎨 외모 상세 설정
+                </h3>
+
+                {/* 체형 & 피부색 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-2">체형</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {BODY_TYPES.map((bt) => (
+                        <button
+                          key={bt.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, bodyType: formData.bodyType === bt.id ? "" : bt.id })}
+                          className={`px-2 py-1 rounded text-xs transition-colors ${
+                            formData.bodyType === bt.id
+                              ? "bg-orange-600 text-white"
+                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          }`}
+                        >
+                          {bt.icon} {bt.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-2">피부색</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SKIN_TONES.map((st) => (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, skinTone: formData.skinTone === st.id ? "" : st.id })}
+                          className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+                            formData.skinTone === st.id
+                              ? "bg-orange-600 text-white"
+                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          }`}
+                        >
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: st.color }} />
+                          {st.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
+                {/* 머리 스타일 & 머리색 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-2">헤어스타일</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {HAIR_STYLES.map((hs) => (
+                        <button
+                          key={hs.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, hairStyle: formData.hairStyle === hs.id ? "" : hs.id })}
+                          className={`px-2 py-1 rounded text-xs transition-colors ${
+                            formData.hairStyle === hs.id
+                              ? "bg-pink-600 text-white"
+                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          }`}
+                        >
+                          {hs.icon} {hs.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-2">머리색</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {HAIR_COLORS.map((hc) => (
+                        <button
+                          key={hc.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, hairColor: formData.hairColor === hc.id ? "" : hc.id })}
+                          className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+                            formData.hairColor === hc.id
+                              ? "bg-pink-600 text-white"
+                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          }`}
+                        >
+                          <span className="w-3 h-3 rounded-full border border-zinc-600" style={{ backgroundColor: hc.color }} />
+                          {hc.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 눈색 */}
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-2">성격 특성</label>
-                  <textarea
-                    value={formData.personality}
-                    onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white resize-none"
-                    rows={2}
-                    placeholder="성격, 분위기, 특징적인 행동 등"
-                  />
+                  <label className="block text-xs text-zinc-500 mb-2">눈색</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {EYE_COLORS.map((ec) => (
+                      <button
+                        key={ec.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, eyeColor: formData.eyeColor === ec.id ? "" : ec.id })}
+                        className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+                          formData.eyeColor === ec.id
+                            ? "bg-cyan-600 text-white"
+                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        }`}
+                      >
+                        <span className="w-3 h-3 rounded-full border border-zinc-600" style={{ backgroundColor: ec.color }} />
+                        {ec.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 특징 (다중 선택) */}
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-2">특징 (다중 선택)</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DISTINCTIVE_FEATURES.map((df) => (
+                      <button
+                        key={df.id}
+                        type="button"
+                        onClick={() => {
+                          const features = formData.distinctiveFeatures.includes(df.id)
+                            ? formData.distinctiveFeatures.filter(f => f !== df.id)
+                            : [...formData.distinctiveFeatures, df.id];
+                          setFormData({ ...formData, distinctiveFeatures: features });
+                        }}
+                        className={`px-2 py-1 rounded text-xs transition-colors ${
+                          formData.distinctiveFeatures.includes(df.id)
+                            ? "bg-amber-600 text-white"
+                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        }`}
+                      >
+                        {df.icon} {df.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 액세서리 (다중 선택) */}
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-2">액세서리 (다중 선택)</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ACCESSORIES.map((acc) => (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={() => {
+                          const accessories = formData.accessories.includes(acc.id)
+                            ? formData.accessories.filter(a => a !== acc.id)
+                            : [...formData.accessories, acc.id];
+                          setFormData({ ...formData, accessories });
+                        }}
+                        className={`px-2 py-1 rounded text-xs transition-colors ${
+                          formData.accessories.includes(acc.id)
+                            ? "bg-indigo-600 text-white"
+                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        }`}
+                      >
+                        {acc.icon} {acc.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 의상 설정 */}
+              <div className="border border-zinc-700 rounded-xl p-4">
+                <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                  👗 의상 스타일
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {CLOTHING_STYLES.map((cs) => (
+                    <button
+                      key={cs.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, clothingStyle: formData.clothingStyle === cs.id ? "" : cs.id })}
+                      className={`px-3 py-1.5 rounded text-xs transition-colors ${
+                        formData.clothingStyle === cs.id
+                          ? "bg-violet-600 text-white"
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                      }`}
+                    >
+                      {cs.icon} {cs.name}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -523,92 +800,50 @@ export default function CharactersPage() {
               <div className="border border-zinc-700 rounded-xl p-4">
                 <h3 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
                   <ImageIcon className="w-4 h-4" />
-                  캐릭터 이미지
+                  캐릭터 참조 이미지
                 </h3>
+                <p className="text-xs text-zinc-500 mb-3">
+                  캐릭터 외모는 첨부된 이미지를 기반으로 묘사됩니다.
+                </p>
 
-                {/* 참조 이미지 */}
-                <div className="mb-4">
-                  <label className="block text-xs text-zinc-500 mb-2">참조 이미지 (로컬 업로드)</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.referenceImages.map((img, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Reference ${idx + 1}`}
-                          className="w-20 h-20 object-cover rounded-lg border border-zinc-700"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(idx, "reference")}
-                          className="absolute -top-2 -right-2 p-1 bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="w-20 h-20 border-2 border-dashed border-zinc-700 rounded-lg flex items-center justify-center hover:border-zinc-600 transition-colors"
-                    >
-                      {uploading ? (
-                        <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
-                      ) : (
-                        <Upload className="w-5 h-5 text-zinc-500" />
-                      )}
-                    </button>
-                  </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                  />
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.referenceImages.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={img}
+                        alt={`Reference ${idx + 1}`}
+                        className="w-20 h-20 object-cover rounded-lg border border-zinc-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute -top-2 -right-2 p-1 bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="w-20 h-20 border-2 border-dashed border-zinc-700 rounded-lg flex items-center justify-center hover:border-zinc-600 transition-colors"
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-zinc-500" />
+                    )}
+                  </button>
                 </div>
-
-                {/* AI 생성 이미지 */}
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-2">AI 생성 이미지</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.generatedImages.map((img, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Generated ${idx + 1}`}
-                          className="w-20 h-20 object-cover rounded-lg border border-zinc-700"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(idx, "generated")}
-                          className="absolute -top-2 -right-2 p-1 bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={generateCharacterImage}
-                      disabled={generating || !formData.appearance}
-                      className="w-20 h-20 border-2 border-dashed border-purple-700 rounded-lg flex flex-col items-center justify-center hover:border-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {generating ? (
-                        <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
-                      ) : (
-                        <>
-                          <Wand2 className="w-5 h-5 text-purple-500" />
-                          <span className="text-[10px] text-purple-500 mt-1">AI 생성</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  {!formData.appearance && (
-                    <p className="text-xs text-zinc-500">외모 설명을 입력하면 AI로 캐릭터 이미지를 생성할 수 있습니다.</p>
-                  )}
-                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
               </div>
 
               {/* 버튼 */}

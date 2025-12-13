@@ -49,9 +49,12 @@ export async function POST(request: Request) {
       await mkdir(uploadDir, { recursive: true });
     }
 
-    // 고유한 파일명 생성
+    // 고유한 파일명 생성 (한글, 숫자, 영문 허용)
     const ext = path.extname(file.name);
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
+    const baseName = path.basename(file.name, ext);
+    // 한글, 영문, 숫자, 하이픈, 언더스코어만 허용 (그 외 문자는 제거)
+    const sanitizedName = baseName.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\-_]/g, '').substring(0, 50);
+    const filename = `${Date.now()}-${sanitizedName || 'file'}${ext}`;
     const filepath = path.join(uploadDir, filename);
 
     await writeFile(filepath, buffer);
