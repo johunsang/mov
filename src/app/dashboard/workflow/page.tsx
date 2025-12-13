@@ -2245,7 +2245,10 @@ JSON 형식으로 응답해주세요:
 
           const endFrameRefInfo = {
             images: endFrameRefs,
-            mapping: startFrameRefInfo.mapping
+            charCount: startFrameRefInfo.charCount,
+            styleCount: startFrameRefInfo.styleCount,
+            prevCount: startFrameRefInfo.prevCount,
+            characterMapping: startFrameRefInfo.characterMapping
           };
 
           const imageRefPrompt = buildImageRefPrompt(endFrameRefInfo);
