@@ -2023,7 +2023,7 @@ JSON 형식으로 응답해주세요:
           const additional = additionalImages.slice(0, 2);
 
           // 순서대로 구성: 캐릭터 → 스타일 → 이전 장면 → 추가
-          let refs: string[] = [
+          const refs: string[] = [
             ...charImages,
             ...styleImages,
             ...previousGenerated,
